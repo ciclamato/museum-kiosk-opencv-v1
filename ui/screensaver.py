@@ -182,9 +182,36 @@ class Screensaver:
         for orb in self._orbs:
             orb.draw(surface, zoom, alpha_mult)
 
-        # 3. UI Elements
+        # 3. Draw Ghost Hand Onboarding (Waving/Swiping animation)
+        if self._state == self.STATE_IDLE:
+            self._draw_ghost_hand(surface, sw, sh)
+
+        # 4. UI Elements
         if self._state != self.STATE_ZOOMING_OUT: 
             self._draw_ui(surface, sw, sh)
+
+    def _draw_ghost_hand(self, surface, sw, sh):
+        """Draw a semi-transparent hand icon performing a swipe animation."""
+        t = self._phase * 2.0
+        # Horizontal path for swipe hint
+        anim_x = sw // 2 + math.sin(t) * 150
+        anim_y = sh // 2 + 100
+        
+        # Pulse alpha for the 'ghost' feel
+        pulse = (math.sin(t * 2) + 1) / 2
+        alpha = int(40 + 60 * pulse)
+        
+        # Draw the 'Palm'
+        pygame.draw.circle(surface, (*config.ACCENT_PRIMARY, alpha), (int(anim_x), int(anim_y)), 30)
+        # Outer glow
+        pygame.draw.circle(surface, (*config.ACCENT_PRIMARY, int(alpha/2)), (int(anim_x), int(anim_y)), 45, 2)
+        
+        # Simple 'Finger' streaks to suggest movement direction
+        for i in range(3):
+            offset_y = (i - 1) * 15
+            pygame.draw.line(surface, (*config.ACCENT_PRIMARY, int(alpha/3)), 
+                             (int(anim_x - 40), int(anim_y + offset_y)), 
+                             (int(anim_x + 40), int(anim_y + offset_y)), 2)
 
     def _draw_ui(self, surface, sw, sh):
         title = i18n.t("screensaver_title").lower()

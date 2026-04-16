@@ -70,6 +70,7 @@ class Renderer:
     def run(self):
         """Main entry point — initializes everything and runs the game loop."""
         self._init_pygame()
+        self._init_audio()
         self._init_subsystems()
         self._running = True
         self._main_loop()
@@ -99,6 +100,27 @@ class Renderer:
         pygame.display.set_caption("Museo Kiosk")
         pygame.mouse.set_visible(config.DEBUG_MODE)
         self._clock = pygame.time.Clock()
+
+    def _init_audio(self):
+        """Pre-load UI sound effects."""
+        self._sounds = {}
+        if config.VIDEO_AUDIO_ENABLED:
+            audio_files = {
+                "whoosh": "assets/audio/whoosh.wav",
+                "chime": "assets/audio/chime.wav"
+            }
+            for key, path in audio_files.items():
+                if os.path.exists(path):
+                    try:
+                        self._sounds[key] = pygame.mixer.Sound(path)
+                        self._sounds[key].set_volume(0.4)
+                    except:
+                        pass
+
+    def play_ui_sound(self, key):
+        """Play a pre-loaded UI sound effect."""
+        if key in self._sounds:
+            self._sounds[key].play()
 
     def _init_subsystems(self):
         """Initialize all kiosk subsystems."""
@@ -212,7 +234,11 @@ class Renderer:
                 cursor = (mx / self._sw, my / self._sh)
 
             if self._scene == Scene.HOME:
+                prev_idx = self._home.target_idx
                 self._home.update(cursor, self._sw, self._sh)
+                if self._home.target_idx != prev_idx:
+                    self.play_ui_sound("whoosh")
+                
                 pending = self._home.get_selected_content()
                 if pending is not None:
                     self._handle_home_selection(pending)
@@ -368,6 +394,7 @@ class Renderer:
                 self._capture.set_camera(idx)
                 print(f"[INFO] UI requested camera index change to {idx}")
         else:
+            self.play_ui_sound("chime")
             if self._viewer.open(content):
                 self._scene = Scene.VIEWER
 
