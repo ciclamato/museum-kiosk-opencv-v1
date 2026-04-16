@@ -1,0 +1,23 @@
+# Museum Kiosk — Dependencies
+# Install: pip install -r requirements.txt
+
+# Core vision
+opencv-python-headless>=4.9.0
+mediapipe>=0.10.9
+numpy>=1.24.0
+
+# Display
+pygame>=2.5.0
+
+# PDF rendering
+PyMuPDF>=1.24.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Web admin panel
+Flask>=3.0.0
+Werkzeug>=3.0.0
+
+# Audio (included with pygame, listed for clarity)
+# pygame.mixer handles audio

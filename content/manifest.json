@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "id": "demo-001",
+      "title": "Bienvenido al Museo",
+      "type": "image",
+      "file": "images/welcome.jpg",
+      "thumbnail": "thumbnails/welcome.jpg",
+      "description": "Imagen de bienvenida del museo"
+    },
+    {
+      "id": "exhibit-a6076351",
+      "title": "a",
+      "type": "video",
+      "file": "videos/prueba.mp4",
+      "thumbnail": "thumbnails/prueba.jpg",
+      "description": "a"
+    }
+  ]
+}

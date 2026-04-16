@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Museo Kiosk — Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0c0c12;
+            --bg-secondary: #161620;
+            --bg-tertiary: #202030;
+            --accent: #00ffd0;
+            --accent-secondary: #7850ff;
+            --danger: #ff5050;
+            --success: #50ff78;
+            --text: #f0f0f5;
+            --text-muted: #a0a0b4;
+            --text-dim: #505064;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ─── Header ──────────────────────────────── */
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header a {
+            padding: 8px 20px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        header a:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        /* ─── Flash Messages ──────────────────────── */
+        .flash {
+            padding: 12px 24px;
+            margin: 16px 32px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .flash.success {
+            background: rgba(80,255,120,0.1);
+            border: 1px solid rgba(80,255,120,0.3);
+            color: var(--success);
+        }
+
+        .flash.error {
+            background: rgba(255,80,80,0.1);
+            border: 1px solid rgba(255,80,80,0.3);
+            color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Content Grid ────────────────────────── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.06);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(0,255,208,0.2);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .card-thumb {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-thumb .type-badge {
+            padding: 8px 16px;
+            background: rgba(0,255,208,0.15);
+            color: var(--accent);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .card-body h3 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .card-body p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .card-body .meta {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-edit {
+            background: rgba(120,80,255,0.15);
+            color: var(--accent-secondary);
+        }
+
+        .btn-edit:hover {
+            background: rgba(120,80,255,0.3);
+        }
+
+        .btn-danger {
+            background: rgba(255,80,80,0.1);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255,80,80,0.25);
+        }
+
+        /* ─── Forms ───────────────────────────────── */
+        .form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input[type="file"] {
+            padding: 8px;
+        }
+
+        .form-group input[type="file"]::file-selector-button {
+            padding: 6px 14px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-primary {
+            padding: 10px 24px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            padding: 10px 24px;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-dim);
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        /* ─── Confirm Dialog ──────────────────────── */
+        .confirm-form {
+            display: inline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🖥 Museo Kiosk — Administración</h1>
+        <a href="{{ url_for('add_content') }}">+ Agregar Contenido</a>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="container">
+        {% if content %}
+            <div class="grid">
+                {% for item in content %}
+                <div class="card">
+                    <div class="card-thumb">
+                        {% if item.thumbnail %}
+                            <img src="{{ url_for('serve_content', filepath=item.thumbnail) }}"
+                                 alt="{{ item.title }}">
+                        {% else %}
+                            <span class="type-badge">{{ item.type }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description or 'Sin descripción' }}</p>
+                        <div class="meta">ID: {{ item.id }} · {{ item.type | upper }} · {{ item.file }}</div>
+                        <div class="card-actions">
+                            <a href="{{ url_for('edit_content', content_id=item.id) }}"
+                               class="btn btn-edit">✏️ Editar</a>
+                            <form class="confirm-form"
+                                  action="{{ url_for('delete_content', content_id=item.id) }}"
+                                  method="post"
+                                  onsubmit="return confirm('¿Eliminar este contenido?')">
+                                <button type="submit" class="btn btn-danger">🗑 Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No hay contenido</h2>
+                <p>Agrega videos, PDFs e imágenes para el kiosk del museo.</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
