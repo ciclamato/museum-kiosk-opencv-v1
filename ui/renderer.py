@@ -5,6 +5,7 @@ background → content → hand overlay → HUD → screensaver.
 """
 import sys
 import time
+import os
 
 import pygame
 import cv2
