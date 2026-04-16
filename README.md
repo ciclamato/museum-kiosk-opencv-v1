@@ -58,6 +58,28 @@ python main.py --windowed --debug
 
 Tunable parameters such as sensitivity, colors, and camera settings can be adjusted in `config.py`.
 
+## 📦 Content Management
+
+The kiosk follows a data-driven approach. Content is defined in `content/manifest.json`.
+
+### manifest.json Structure
+```json
+{
+  "content": [
+    {
+      "id": "unique-id",
+      "title": "Display Title",
+      "type": "video|pdf|image",
+      "file": "relative/path/to/file",
+      "thumbnail": "relative/path/to/thumbnail",
+      "description": "Short description"
+    }
+  ]
+}
+```
+
+You can manage this manually or use the built-in **Admin Panel** (`python main.py --admin`).
+
 ## 📂 Project Structure
 
 - `core/`: Vision and gesture processing logic.
