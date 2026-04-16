@@ -27,23 +27,16 @@ A touchless, gesture-controlled interactive interface designed for museum exhibi
 - A webcam or similar video input device.
 
 ### 2. Installation
-```bash
-# Clone the repository
-git clone <repository-url>
-cd OPENCV
+The easiest way to install and run the project on Windows is by using the included batch scripts.
 
-# Install dependencies
-pip install -r requirements.txt
+```bash
+# Double-click 'install_requirements.bat' to install all dependencies automatically.
 ```
 
 ### 3. Running the Kiosk
-```bash
-# Fullscreen mode (default)
-python main.py
-
-# Windowed mode for development
-python main.py --windowed --debug
-```
+- **`launcher.bat`**: Recommended (All-in-one menu).
+- **`run_kiosk.bat`**: Launch the main kiosk instantly.
+- **`run_admin.bat`**: Open the web management panel.
 
 ## 🖐️ Hand Gestures
 
