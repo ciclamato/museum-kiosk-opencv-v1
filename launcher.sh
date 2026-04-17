@@ -3,6 +3,12 @@ set -u
 
 cd "$(dirname "$0")"
 
+if [ -x ".venv/bin/python" ]; then
+  PYTHON_BIN=".venv/bin/python"
+else
+  PYTHON_BIN="python3"
+fi
+
 while true; do
   clear
   cat <<'EOF'
@@ -23,7 +29,7 @@ EOF
   case "$choice" in
     1)
       echo "[INFO] Starting Kiosk..."
-      python3 main.py || {
+      "$PYTHON_BIN" main.py || {
         echo
         echo "[ERROR] The application exited with an error."
         read -r -p "Press Enter to continue..."
@@ -31,7 +37,7 @@ EOF
       ;;
     2)
       echo "[INFO] Starting Kiosk in Windowed Debug mode..."
-      python3 main.py --windowed --debug || {
+      "$PYTHON_BIN" main.py --windowed --debug || {
         echo
         echo "[ERROR] The application exited with an error."
         read -r -p "Press Enter to continue..."
@@ -40,7 +46,7 @@ EOF
     3)
       echo "[INFO] Starting Admin Panel..."
       echo "[INFO] Access via http://localhost:5000"
-      python3 main.py --admin || {
+      "$PYTHON_BIN" main.py --admin || {
         echo
         echo "[ERROR] The application exited with an error."
         read -r -p "Press Enter to continue..."

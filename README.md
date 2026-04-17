@@ -27,16 +27,35 @@ A touchless, gesture-controlled interactive interface designed for museum exhibi
 - A webcam or similar video input device.
 
 ### 2. Installation
+
+#### Windows
 The easiest way to install and run the project on Windows is by using the included batch scripts.
 
 ```bash
-# Double-click 'install_requirements.bat' to install all dependencies automatically.
+# Double-click install_requirements.bat
+```
+
+#### Linux / Raspberry Pi OS
+On Raspberry Pi OS and other Debian-based systems, the project uses a local virtual environment in `./.venv`.
+
+```bash
+sudo apt update
+sudo apt install -y python3-venv python3-full
+chmod +x launcher.sh run_kiosk.sh run_admin.sh install_requirements.sh
+./install_requirements.sh
 ```
 
 ### 3. Running the Kiosk
-- **`launcher.bat`**: Recommended (All-in-one menu).
+
+#### Windows
+- **`launcher.bat`**: Recommended (all-in-one menu).
 - **`run_kiosk.bat`**: Launch the main kiosk instantly.
 - **`run_admin.bat`**: Open the web management panel.
+
+#### Linux / Raspberry Pi OS
+- **`./launcher.sh`**: Recommended (all-in-one menu).
+- **`./run_kiosk.sh`**: Launch the main kiosk instantly.
+- **`./run_admin.sh`**: Open the web management panel.
 
 ## 🖐️ Hand Gestures
 
