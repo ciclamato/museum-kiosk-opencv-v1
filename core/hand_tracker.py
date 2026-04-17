@@ -37,14 +37,30 @@ class HandTracker:
         self.frame_skip = frame_skip
         self._frame_counter = 0
 
-        import mediapipe.python.solutions.hands as mp_hands
-        self._mp_hands = mp_hands
-        self._hands = self._mp_hands.Hands(
-            static_image_mode=False,
-            max_num_hands=max_hands,
-            min_detection_confidence=min_detection_conf,
+        # Tasks API imports
+        import mediapipe as mp
+        from mediapipe.tasks import python
+        from mediapipe.tasks.python import vision
+        import os
+
+        # Resolve model path
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        model_path = os.path.join(base_dir, "assets", "hand_landmarker.task")
+
+        if not os.path.exists(model_path):
+             # Fallback: try to find it in current working directory context
+             model_path = os.path.join("assets", "hand_landmarker.task")
+
+        base_options = python.BaseOptions(model_asset_path=model_path)
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            running_mode=vision.RunningMode.VIDEO, # Using VIDEO mode for better temporal consistency
+            num_hands=max_hands,
+            min_hand_detection_confidence=min_detection_conf,
+            min_hand_presence_confidence=min_detection_conf,
             min_tracking_confidence=min_tracking_conf,
         )
+        self._detector = vision.HandLandmarker.create_from_options(options)
 
         # Last known results (used during skipped frames)
         self._last_landmarks = None
@@ -69,15 +85,20 @@ class HandTracker:
         small = cv2.flip(small, 1)
         rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
-        # Run MediaPipe
-        results = self._hands.process(rgb)
+        # Convert to MediaPipe Image object
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
-        if results.multi_hand_landmarks:
-            hand = results.multi_hand_landmarks[0]
-            landmarks = [(lm.x, lm.y, lm.z) for lm in hand.landmark]
+        # Run MediaPipe (using timestamps as required for VIDEO mode)
+        # We can use simple frame counter * 33ms (approx 30fps)
+        timestamp_ms = int(self._frame_counter * 33)
+        results = self._detector.detect_for_video(mp_image, timestamp_ms)
+
+        if results.hand_landmarks:
+            hand = results.hand_landmarks[0]
+            landmarks = [(lm.x, lm.y, lm.z) for lm in hand]
             handedness = "Right"
-            if results.multi_handedness:
-                handedness = results.multi_handedness[0].classification[0].label
+            if results.handedness:
+                handedness = results.handedness[0][0].category_name
             self._last_landmarks = landmarks
             self._last_handedness = handedness
             if not self._hand_detected:
@@ -150,4 +171,4 @@ class HandTracker:
 
     def cleanup(self):
         """Release MediaPipe resources."""
-        self._hands.close()
+        self._detector.close()

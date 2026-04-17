@@ -47,7 +47,7 @@ class CaptureThread:
     def get_frame(self):
         """Get the latest frame (thread-safe). Returns None if no frame."""
         with self._lock:
-            return self._frame.copy() if self._frame is not None else None
+            return self._frame if self._frame is not None else None
 
     @property
     def is_connected(self):
@@ -161,6 +161,9 @@ class CaptureThread:
 
             print(f"[DEBUG] Camera index {self.camera_index} opened successfully.")
             sys.stdout.flush()
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            cap.set(cv2.CAP_PROP_FPS, 30)
             # Try to get actual resolution
             w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
             h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)

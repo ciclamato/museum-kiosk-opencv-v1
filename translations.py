@@ -5,10 +5,10 @@ Museum Kiosk — Translations (Spanish-first, English support)
 STRINGS = {
     "es": {
         # Home screen
-        "home_title": "Bienvenido al Museo",
-        "home_subtitle": "Usa tu mano para explorar el contenido",
+        "home_title": "Museo",
+        "home_subtitle": "Explora la coleccion",
         "no_content": "No hay contenido disponible",
-        "show_hand": "Muestra tu mano para comenzar",
+        "show_hand": "Presencia detectada",
 
         # Gestures
         "gesture_point": "Señalar",
@@ -29,9 +29,10 @@ STRINGS = {
         "pinch_hint": "Pellizca para seleccionar",
 
         # Screensaver
-        "screensaver_title": "Toca el aire para explorar",
-        "screensaver_subtitle": "Acerca tu mano a la camara",
-        "screensaver_hint": "Mueve tu mano para comenzar",
+        "screensaver_title": "Museo",
+        "screensaver_subtitle": "",
+        "screensaver_hint": "",
+        "screensaver_presence": "",
 
         # HUD
         "fps": "FPS",
@@ -55,10 +56,10 @@ STRINGS = {
     },
     "en": {
         # Home screen
-        "home_title": "Welcome to the Museum",
-        "home_subtitle": "Use your hand to explore the content",
+        "home_title": "Museum",
+        "home_subtitle": "Explore the collection",
         "no_content": "No content available",
-        "show_hand": "Show your hand to begin",
+        "show_hand": "Presence detected",
 
         # Gestures
         "gesture_point": "Point",
@@ -79,9 +80,10 @@ STRINGS = {
         "pinch_hint": "Pinch to select",
 
         # Screensaver
-        "screensaver_title": "Touch the air to explore",
-        "screensaver_subtitle": "Bring your hand close to the camera",
-        "screensaver_hint": "Wave your hand to begin",
+        "screensaver_title": "Museum",
+        "screensaver_subtitle": "",
+        "screensaver_hint": "",
+        "screensaver_presence": "",
 
         # HUD
         "fps": "FPS",

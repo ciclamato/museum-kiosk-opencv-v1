@@ -40,16 +40,28 @@ class ContentViewer:
         self._video_fps = 30
         self._video_last_frame_time = 0
         self._video_surface = None
+        self._video_scaled_cache = None
+        self._video_scaled_cache_size = None
 
         # PDF state
-        self._pdf_pages = []       # List of Pygame surfaces
+        self._pdf_doc = None
+        self._pdf_page_count = 0
         self._pdf_current_page = 0
         self._pdf_zoom = 1.0
+        self._pdf_offset = (0.0, 0.0)
+        self._pdf_render_cache = {}
+        self._pdf_scaled_cache = {}
+        self._pdf_nav_hover = None
+        self._pdf_nav_frames = 0
+        self._pdf_nav_cooldown_until = 0
+        self._pdf_swipe_cooldown_until = 0
 
         # Image state
         self._image_surface = None
         self._image_zoom = 1.0
-        self._image_offset = (0, 0)
+        self._image_offset = (0.0, 0.0)
+        self._image_scaled_cache = None
+        self._image_scaled_cache_key = None
 
         # UI
         self._font_title = None
@@ -81,6 +93,12 @@ class ContentViewer:
         self._active = True
         self._should_close = False
         self._transition_alpha = 0
+        self._video_scaled_cache = None
+        self._video_scaled_cache_size = None
+        self._pdf_scaled_cache = {}
+        self._pdf_render_cache = {}
+        self._image_scaled_cache = None
+        self._image_scaled_cache_key = None
 
         file_path = os.path.join(config.CONTENT_DIR, content_item.get("file", ""))
 
@@ -109,9 +127,21 @@ class ContentViewer:
         except Exception:
             pass
 
-        self._pdf_pages = []
+        if self._pdf_doc is not None:
+            try:
+                self._pdf_doc.close()
+            except Exception:
+                pass
+            self._pdf_doc = None
+        self._pdf_page_count = 0
+        self._pdf_render_cache = {}
+        self._pdf_scaled_cache = {}
         self._image_surface = None
+        self._image_scaled_cache = None
+        self._image_scaled_cache_key = None
         self._video_surface = None
+        self._video_scaled_cache = None
+        self._video_scaled_cache_size = None
         self._active = False
         self._content = None
 
@@ -136,29 +166,60 @@ class ContentViewer:
                 self._video_playing = not self._video_playing
 
         elif gesture_type == "SWIPE_LEFT":
-            if self._type == "pdf":
-                self._pdf_current_page = min(
-                    self._pdf_current_page + 1, len(self._pdf_pages) - 1)
-            elif self._type == "video":
-                self._video_seek(5)  # Forward 5s
+            if self._type == "pdf" and pygame.time.get_ticks() >= self._pdf_swipe_cooldown_until:
+                self._go_to_pdf_page(self._pdf_current_page + 1)
+                self._pdf_swipe_cooldown_until = pygame.time.get_ticks() + 350
 
         elif gesture_type == "SWIPE_RIGHT":
-            if self._type == "pdf":
-                self._pdf_current_page = max(self._pdf_current_page - 1, 0)
-            elif self._type == "video":
-                self._video_seek(-5)  # Back 5s
+            if self._type == "pdf" and pygame.time.get_ticks() >= self._pdf_swipe_cooldown_until:
+                self._go_to_pdf_page(self._pdf_current_page - 1)
+                self._pdf_swipe_cooldown_until = pygame.time.get_ticks() + 350
 
         elif gesture_type == "PINCH":
             if self._type in ("pdf", "image"):
                 self._toggle_zoom()
 
-    def update(self, dt=1/30):
+    def handle_key(self, key):
+        """Keyboard fallback controls."""
+        if not self._active:
+            return
+
+        if key == pygame.K_LEFT:
+            if self._type == "pdf":
+                self._go_to_pdf_page(self._pdf_current_page - 1)
+            elif self._type == "image" and self._image_zoom > 1.01:
+                self._nudge_offset(-0.08, 0.0)
+        elif key == pygame.K_RIGHT:
+            if self._type == "pdf":
+                self._go_to_pdf_page(self._pdf_current_page + 1)
+            elif self._type == "image" and self._image_zoom > 1.01:
+                self._nudge_offset(0.08, 0.0)
+        elif key == pygame.K_UP:
+            if self._type in ("pdf", "image") and self._current_zoom() > 1.01:
+                self._nudge_offset(0.0, -0.08)
+        elif key == pygame.K_DOWN:
+            if self._type in ("pdf", "image") and self._current_zoom() > 1.01:
+                self._nudge_offset(0.0, 0.08)
+        elif key in (pygame.K_PLUS, pygame.K_KP_PLUS, pygame.K_EQUALS):
+            if self._type in ("pdf", "image"):
+                self._set_zoom(min(2.0, self._current_zoom() + 0.25))
+        elif key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+            if self._type in ("pdf", "image"):
+                self._set_zoom(max(1.0, self._current_zoom() - 0.25))
+
+    def update(self, dt=1/30, cursor=None, screen_size=None):
         """Update content state each frame."""
         if self._transition_alpha < 255:
-            self._transition_alpha = min(255, self._transition_alpha + 10)
+            self._transition_alpha = min(255, self._transition_alpha + 18)
 
         if self._type == "video" and self._video_playing:
             self._update_video()
+        elif self._type == "pdf":
+            self._update_pdf_navigation(cursor)
+            self._prefetch_pdf_neighbors()
+            self._update_pan_from_cursor(cursor)
+        elif self._type == "image":
+            self._update_pan_from_cursor(cursor)
 
     def draw(self, surface):
         """Draw the current content."""
@@ -168,23 +229,25 @@ class ContentViewer:
         sw, sh = surface.get_size()
         surface.fill(config.BG_PRIMARY)
 
-        content_surface = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        target_surface = surface
+        content_surface = None
+        if self._transition_alpha < 255:
+            content_surface = pygame.Surface((sw, sh), pygame.SRCALPHA)
+            target_surface = content_surface
 
         if self._type == "video":
-            self._draw_video(content_surface, sw, sh)
+            self._draw_video(target_surface, sw, sh)
         elif self._type == "pdf":
-            self._draw_pdf(content_surface, sw, sh)
+            self._draw_pdf(target_surface, sw, sh)
         elif self._type == "image":
-            self._draw_image(content_surface, sw, sh)
+            self._draw_image(target_surface, sw, sh)
 
-        # Title bar
-        self._draw_title_bar(content_surface, sw, sh)
+        self._draw_title_bar(target_surface, sw, sh)
+        self._draw_hints(target_surface, sw, sh)
 
-        # Hints
-        self._draw_hints(content_surface, sw, sh)
-
-        content_surface.set_alpha(self._transition_alpha)
-        surface.blit(content_surface, (0, 0))
+        if content_surface is not None:
+            content_surface.set_alpha(self._transition_alpha)
+            surface.blit(content_surface, (0, 0))
 
     # ─── Video ────────────────────────────────────────────────────────
 
@@ -194,7 +257,7 @@ class ContentViewer:
             self._video_cap = cv2.VideoCapture(path)
             if not self._video_cap.isOpened():
                 return False
-            self._video_fps = self._video_cap.get(cv2.CAP_PROP_FPS) or 30
+            self._video_fps = min(config.VIDEO_MAX_FPS, self._video_cap.get(cv2.CAP_PROP_FPS) or 30)
             self._video_playing = True
             self._video_last_frame_time = time.time()
 
@@ -241,6 +304,8 @@ class ContentViewer:
         h, w = frame_rgb.shape[:2]
         self._video_surface = pygame.image.frombuffer(
             frame_rgb.tobytes(), (w, h), "RGB")
+        self._video_scaled_cache = None
+        self._video_scaled_cache_size = None
 
     def _video_seek(self, seconds):
         """Seek video by given seconds."""
@@ -271,7 +336,10 @@ class ContentViewer:
         new_w = int(vw * scale)
         new_h = int(vh * scale)
 
-        scaled = pygame.transform.smoothscale(self._video_surface, (new_w, new_h))
+        if self._video_scaled_cache is None or self._video_scaled_cache_size != (new_w, new_h):
+            self._video_scaled_cache = pygame.transform.scale(self._video_surface, (new_w, new_h))
+            self._video_scaled_cache_size = (new_w, new_h)
+        scaled = self._video_scaled_cache
         x = (sw - new_w) // 2
         y = 60 + (content_area_h - new_h) // 2
 
@@ -307,46 +375,40 @@ class ContentViewer:
     # ─── PDF ──────────────────────────────────────────────────────────
 
     def _open_pdf(self, path):
-        """Open PDF and convert pages to Pygame surfaces."""
+        """Open PDF in lazy mode and render pages on demand."""
         if not HAS_FITZ:
             return False
 
         try:
-            doc = fitz.open(path)
-            self._pdf_pages = []
-            dpi = config.PDF_RENDER_DPI
-            matrix = fitz.Matrix(dpi / 72, dpi / 72)
-
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                pix = page.get_pixmap(matrix=matrix)
-                img_data = pix.tobytes("ppm")
-                surf = pygame.image.load_extended(
-                    # Create in-memory file-like
-                    pygame.image.frombuffer(pix.samples, (pix.width, pix.height),
-                                            "RGB" if pix.n == 3 else "RGBA")
-                ) if False else pygame.image.frombuffer(
-                    pix.samples, (pix.width, pix.height),
-                    "RGB" if pix.n == 3 else "RGBA"
-                )
-                self._pdf_pages.append(surf)
-
-            doc.close()
+            self._pdf_doc = fitz.open(path)
+            self._pdf_page_count = len(self._pdf_doc)
             self._pdf_current_page = 0
             self._pdf_zoom = 1.0
-            return len(self._pdf_pages) > 0
+            self._pdf_offset = (0.0, 0.0)
+            self._pdf_render_cache = {}
+            self._pdf_scaled_cache = {}
+            self._pdf_nav_hover = None
+            self._pdf_nav_frames = 0
+            self._pdf_nav_cooldown_until = 0
+            self._pdf_swipe_cooldown_until = 0
+            return self._pdf_page_count > 0
         except Exception:
             return False
 
     def _draw_pdf(self, surface, sw, sh):
         """Draw current PDF page."""
-        if not self._pdf_pages:
+        if self._pdf_doc is None or self._pdf_page_count <= 0:
             text = "Error al cargar PDF" if i18n.lang == "es" else "Error loading PDF"
             txt = self._font_info.render(text, True, config.ACCENT_WARNING)
             surface.blit(txt, ((sw - txt.get_width()) // 2, sh // 2))
             return
 
-        page_surf = self._pdf_pages[self._pdf_current_page]
+        page_surf = self._get_pdf_page_surface(self._pdf_current_page)
+        if page_surf is None:
+            text = "Error al renderizar PDF" if i18n.lang == "es" else "Error rendering PDF"
+            txt = self._font_info.render(text, True, config.ACCENT_WARNING)
+            surface.blit(txt, ((sw - txt.get_width()) // 2, sh // 2))
+            return
         pw, ph = page_surf.get_size()
         content_area_h = sh - 120
 
@@ -356,9 +418,12 @@ class ContentViewer:
         new_w = int(pw * scale)
         new_h = int(ph * scale)
 
-        scaled = pygame.transform.smoothscale(page_surf, (new_w, new_h))
-        x = (sw - new_w) // 2
-        y = 60 + (content_area_h - new_h) // 2
+        cache_key = (self._pdf_current_page, round(self._pdf_zoom, 2), sw, sh)
+        scaled = self._pdf_scaled_cache.get(cache_key)
+        if scaled is None:
+            scaled = pygame.transform.scale(page_surf, (new_w, new_h))
+            self._pdf_scaled_cache = {cache_key: scaled}
+        x, y = self._resolve_draw_position(sw, sh, new_w, new_h, top_margin=60, bottom_margin=60, offset=self._pdf_offset)
 
         # White page background
         pygame.draw.rect(surface, (255, 255, 255),
@@ -366,7 +431,7 @@ class ContentViewer:
         surface.blit(scaled, (x, y))
 
         # Page indicator
-        page_text = f"{i18n.t('page')} {self._pdf_current_page + 1} {i18n.t('of')} {len(self._pdf_pages)}"
+        page_text = f"{i18n.t('page')} {self._pdf_current_page + 1} {i18n.t('of')} {self._pdf_page_count}"
         page_surf = self._font_info.render(page_text, True, config.TEXT_SECONDARY)
         surface.blit(page_surf,
                      ((sw - page_surf.get_width()) // 2, sh - 80))
@@ -378,7 +443,9 @@ class ContentViewer:
         try:
             self._image_surface = pygame.image.load(path)
             self._image_zoom = 1.0
-            self._image_offset = (0, 0)
+            self._image_offset = (0.0, 0.0)
+            self._image_scaled_cache = None
+            self._image_scaled_cache_key = None
             return True
         except Exception:
             return False
@@ -396,9 +463,12 @@ class ContentViewer:
         new_w = int(iw * scale)
         new_h = int(ih * scale)
 
-        scaled = pygame.transform.smoothscale(self._image_surface, (new_w, new_h))
-        x = (sw - new_w) // 2
-        y = 60 + (content_area_h - new_h) // 2
+        cache_key = (round(self._image_zoom, 2), sw, sh)
+        if self._image_scaled_cache_key != cache_key:
+            self._image_scaled_cache = pygame.transform.scale(self._image_surface, (new_w, new_h))
+            self._image_scaled_cache_key = cache_key
+        scaled = self._image_scaled_cache
+        x, y = self._resolve_draw_position(sw, sh, new_w, new_h, top_margin=60, bottom_margin=60, offset=self._image_offset)
 
         surface.blit(scaled, (x, y))
 
@@ -407,9 +477,9 @@ class ContentViewer:
     def _toggle_zoom(self):
         """Toggle between 1x and 1.5x zoom."""
         if self._type == "pdf":
-            self._pdf_zoom = 1.5 if self._pdf_zoom < 1.3 else 1.0
+            self._set_zoom(1.6 if self._pdf_zoom < 1.3 else 1.0)
         elif self._type == "image":
-            self._image_zoom = 1.5 if self._image_zoom < 1.3 else 1.0
+            self._set_zoom(1.6 if self._image_zoom < 1.3 else 1.0)
 
     def _draw_title_bar(self, surface, sw, sh):
         """Draw content title at the top."""
@@ -441,20 +511,19 @@ class ContentViewer:
         hints = []
         if self._type == "video":
             hints = [
-                ("✋", i18n.t("gesture_open_palm"), "Play/Pause"),
-                ("👈", i18n.t("gesture_swipe_left"), "±5s"),
-                ("✊", i18n.t("gesture_fist"), i18n.t("back_hint")),
+                ("Open", "Play/Pause"),
+                ("Fist", i18n.t("back_hint")),
             ]
         elif self._type == "pdf":
             hints = [
-                ("👈", i18n.t("swipe_hint"), ""),
-                ("🤏", i18n.t("pinch_hint"), ""),
-                ("✊", i18n.t("gesture_fist"), i18n.t("back_hint")),
+                ("Edges", "Paginas"),
+                ("Pinch", i18n.t("pinch_hint")),
+                ("Fist", i18n.t("back_hint")),
             ]
         elif self._type == "image":
             hints = [
-                ("🤏", i18n.t("pinch_hint"), ""),
-                ("✊", i18n.t("gesture_fist"), i18n.t("back_hint")),
+                ("Pinch", i18n.t("pinch_hint")),
+                ("Fist", i18n.t("back_hint")),
             ]
 
         if not hints:
@@ -469,12 +538,146 @@ class ContentViewer:
         total_w = len(hints) * 200
         start_x = (sw - total_w) // 2
 
-        for i, (icon, label, detail) in enumerate(hints):
+        for i, (label, detail) in enumerate(hints):
             x = start_x + i * 200
-            text = f"{label}"
-            if detail:
-                text += f" — {detail}"
+            text = label if not detail else f"{label} - {detail}"
             txt = self._font_hint.render(text, True, config.TEXT_SECONDARY)
             bar.blit(txt, (x, (bar_h - txt.get_height()) // 2))
 
         surface.blit(bar, (0, bar_y))
+
+    def _get_pdf_page_surface(self, page_index):
+        cached = self._pdf_render_cache.get(page_index)
+        if cached is not None:
+            return cached
+        if self._pdf_doc is None or page_index < 0 or page_index >= self._pdf_page_count:
+            return None
+
+        try:
+            page = self._pdf_doc[page_index]
+            matrix = fitz.Matrix(config.PDF_RENDER_DPI / 72, config.PDF_RENDER_DPI / 72)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            surface = pygame.image.frombuffer(pix.samples, (pix.width, pix.height), "RGB").copy()
+            if len(self._pdf_render_cache) >= 5:
+                oldest_key = next(iter(self._pdf_render_cache))
+                del self._pdf_render_cache[oldest_key]
+            self._pdf_render_cache[page_index] = surface
+            return surface
+        except Exception:
+            return None
+
+    def _go_to_pdf_page(self, page_index):
+        if self._pdf_page_count <= 0:
+            return
+        page_index = max(0, min(page_index, self._pdf_page_count - 1))
+        if page_index != self._pdf_current_page:
+            self._pdf_current_page = page_index
+            self._pdf_scaled_cache = {}
+            self._pdf_offset = (0.0, 0.0)
+
+    def _update_pdf_navigation(self, cursor):
+        now = pygame.time.get_ticks()
+        if cursor is None or now < self._pdf_nav_cooldown_until:
+            self._pdf_nav_hover = None
+            self._pdf_nav_frames = 0
+            return
+
+        zone = None
+        if cursor[0] <= 0.22:
+            zone = "left"
+        elif cursor[0] >= 0.78:
+            zone = "right"
+
+        if zone is None:
+            self._pdf_nav_hover = None
+            self._pdf_nav_frames = 0
+            return
+
+        if zone == self._pdf_nav_hover:
+            self._pdf_nav_frames += 1
+        else:
+            self._pdf_nav_hover = zone
+            self._pdf_nav_frames = 1
+
+        if self._pdf_nav_frames >= 6:
+            if zone == "left":
+                self._go_to_pdf_page(self._pdf_current_page - 1)
+            else:
+                self._go_to_pdf_page(self._pdf_current_page + 1)
+            self._pdf_nav_frames = 0
+            self._pdf_nav_cooldown_until = now + 260
+
+    def _prefetch_pdf_neighbors(self):
+        if self._pdf_doc is None or self._pdf_page_count <= 0:
+            return
+        self._get_pdf_page_surface(self._pdf_current_page)
+        if self._pdf_current_page + 1 < self._pdf_page_count:
+            self._get_pdf_page_surface(self._pdf_current_page + 1)
+        if self._pdf_current_page - 1 >= 0:
+            self._get_pdf_page_surface(self._pdf_current_page - 1)
+
+    def _update_pan_from_cursor(self, cursor):
+        if cursor is None or self._current_zoom() <= 1.01:
+            return
+
+        target_x = (0.5 - cursor[0]) * 0.9
+        target_y = (0.5 - cursor[1]) * 0.9
+        current_x, current_y = self._current_offset()
+        eased = (
+            current_x + (target_x - current_x) * 0.18,
+            current_y + (target_y - current_y) * 0.18,
+        )
+        self._set_offset(eased)
+
+    def _resolve_draw_position(self, sw, sh, content_w, content_h, top_margin, bottom_margin, offset):
+        content_area_h = sh - top_margin - bottom_margin
+        base_x = (sw - content_w) // 2
+        base_y = top_margin + (content_area_h - content_h) // 2
+
+        extra_x = max(0, (content_w - sw) // 2)
+        extra_y = max(0, (content_h - content_area_h) // 2)
+        offset_x = int(extra_x * max(-1.0, min(1.0, offset[0])))
+        offset_y = int(extra_y * max(-1.0, min(1.0, offset[1])))
+        return base_x + offset_x, base_y + offset_y
+
+    def _nudge_offset(self, dx, dy):
+        ox, oy = self._current_offset()
+        self._set_offset((ox + dx, oy + dy))
+
+    def _set_offset(self, offset):
+        clamped = (
+            max(-1.0, min(1.0, offset[0])),
+            max(-1.0, min(1.0, offset[1])),
+        )
+        if self._type == "pdf":
+            self._pdf_offset = clamped
+        elif self._type == "image":
+            self._image_offset = clamped
+
+    def _current_offset(self):
+        if self._type == "pdf":
+            return self._pdf_offset
+        if self._type == "image":
+            return self._image_offset
+        return (0.0, 0.0)
+
+    def _current_zoom(self):
+        if self._type == "pdf":
+            return self._pdf_zoom
+        if self._type == "image":
+            return self._image_zoom
+        return 1.0
+
+    def _set_zoom(self, zoom):
+        zoom = max(1.0, min(2.0, zoom))
+        if self._type == "pdf":
+            self._pdf_zoom = zoom
+            self._pdf_scaled_cache = {}
+            if zoom <= 1.01:
+                self._pdf_offset = (0.0, 0.0)
+        elif self._type == "image":
+            self._image_zoom = zoom
+            self._image_scaled_cache = None
+            self._image_scaled_cache_key = None
+            if zoom <= 1.01:
+                self._image_offset = (0.0, 0.0)

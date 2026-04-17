@@ -13,33 +13,33 @@ FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
 CAMERA_INDEX = 0
-CAMERA_WIDTH = 640          # Capture resolution
-CAMERA_HEIGHT = 480
+CAMERA_WIDTH = 480          # Lower capture resolution for Raspberry Pi 4
+CAMERA_HEIGHT = 360
 
 # ─── MediaPipe Inference ─────────────────────────────────────────────────────
-INFERENCE_WIDTH = 320       # Downscale for hand detection
-INFERENCE_HEIGHT = 240
+INFERENCE_WIDTH = 256       # Downscale for hand detection
+INFERENCE_HEIGHT = 192
 MAX_HANDS = 1
 MIN_DETECTION_CONFIDENCE = 0.7
 MIN_TRACKING_CONFIDENCE = 0.5
-FRAME_SKIP = 2             # Run detection every Nth frame (1 = every frame)
+FRAME_SKIP = 2             # Better hand responsiveness while keeping Pi 4 load reasonable
 
 # ─── Display ──────────────────────────────────────────────────────────────────
-DISPLAY_FPS = 30
+DISPLAY_FPS = 20
 FULLSCREEN = True           # Set False for dev/windowed mode
 WINDOW_WIDTH = 1280         # Used only in windowed mode
 WINDOW_HEIGHT = 720
 
 # ─── Gesture Thresholds ──────────────────────────────────────────────────────
-SWIPE_THRESHOLD = 0.15      # Normalized x-delta for swipe
-SWIPE_FRAMES = 8            # Number of frames to track for swipe
-PINCH_THRESHOLD = 0.06      # Distance between thumb & index tips
-GESTURE_COOLDOWN_MS = 600   # Debounce repeated gesture events (ms)
+SWIPE_THRESHOLD = 0.22      # Normalized x-delta for deliberate swipe
+SWIPE_FRAMES = 10           # More history reduces accidental swipes
+PINCH_THRESHOLD = 0.055     # Slightly stricter pinch
+GESTURE_COOLDOWN_MS = 900   # Debounce repeated gesture events (ms)
 POINT_THRESHOLD = 0.03      # Min movement to register pointer movement
 
 # ─── Phantom Trail ────────────────────────────────────────────────────────────
-TRAIL_MAX_POINTS = 45       # Longer trail
-TRAIL_FADE_RATE = 0.72      # Faster fade for 'delicacy'
+TRAIL_MAX_POINTS = 28       # Shorter trail for lower fill cost on Raspberry Pi 4
+TRAIL_FADE_RATE = 0.7       # Faster fade keeps the trail light to render
 TRAIL_BASE_WIDTH = 4        # Thinner trail
 TRAIL_MIN_WIDTH = 1
 TRAIL_COLOR = (122, 162, 247) # Tokyo Blue glow
@@ -62,6 +62,7 @@ HAND_SKELETON_COLOR = (0, 255, 208, 100)  # Skeleton lines
 HAND_LANDMARK_COLOR = (255, 255, 255)      # Joint dots
 HAND_CURSOR_RADIUS = 12                    # Cursor dot size
 HAND_CURSOR_GLOW_RADIUS = 24              # Outer glow radius
+HAND_SMOOTHING = 0.42                     # Visual interpolation factor for the skeleton
 
 # Cursor color changes by gesture
 CURSOR_COLORS = {
@@ -75,12 +76,13 @@ CURSOR_COLORS = {
 }
 
 # ─── Screensaver ──────────────────────────────────────────────────────────────
-SCREENSAVER_TIMEOUT_S = 30   # Seconds of no hand → screensaver
-SCREENSAVER_PARTICLE_COUNT = 60
-SCREENSAVER_PARTICLE_SPEED = 0.5
+SCREENSAVER_TIMEOUT_S = 30        # Seconds of no hand -> screensaver
+SCREENSAVER_PRESENCE_HOLD_S = 4.0 # Presence time on screensaver -> menu
+SCREENSAVER_VIDEO_MAX_FPS = 24    # Limit attract video playback on Raspberry Pi 4
 
 # ─── Content Viewer ──────────────────────────────────────────────────────────
-PDF_RENDER_DPI = 150         # Quality for PDF → image conversion
+PDF_RENDER_DPI = 96          # PDF render quality tuned for Raspberry Pi 4
+VIDEO_MAX_FPS = 24           # Cap content video playback FPS
 VIDEO_AUDIO_ENABLED = True   # Play audio from video files
 
 # ─── i18n ─────────────────────────────────────────────────────────────────────

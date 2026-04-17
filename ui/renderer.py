@@ -4,11 +4,12 @@ Pygame main loop with scene management. Composites all layers:
 background → content → hand overlay → HUD → screensaver.
 """
 import sys
-import time
 import os
+import json
 
 import pygame
 import cv2
+import numpy as np
 import config
 from translations import i18n
 
@@ -49,7 +50,7 @@ class Renderer:
             config.SHOW_FPS = True
 
         self._running = False
-        self._scene = Scene.SCREENSAVER  # Start with windmill attract screen
+        self._scene = Scene.SCREENSAVER
         self._clock = None
         self._screen = None
         self._sw = 0
@@ -66,7 +67,10 @@ class Renderer:
         self._viewer = None
         self._screensaver = None
         self._tutorial = None
-        self._first_launch = True  # Show tutorial on first screensaver exit
+        self._first_launch = False
+        self._experience_mode = "menu"
+        self._video_playlist = []
+        self._playlist_index = 0
 
     def run(self):
         """Main entry point — initializes everything and runs the game loop."""
@@ -106,25 +110,55 @@ class Renderer:
         """Pre-load UI sound effects."""
         self._sounds = {}
         if config.VIDEO_AUDIO_ENABLED:
-            audio_files = {
-                "whoosh": "assets/audio/whoosh.wav",
-                "chime": "assets/audio/chime.wav"
+            synthesized = {
+                "whoosh": self._build_arcade_sound("move"),
+                "chime": self._build_arcade_sound("confirm"),
             }
-            for key, path in audio_files.items():
-                if os.path.exists(path):
-                    try:
-                        self._sounds[key] = pygame.mixer.Sound(path)
-                        self._sounds[key].set_volume(0.4)
-                    except:
-                        pass
+            for key, sound in synthesized.items():
+                if sound is not None:
+                    self._sounds[key] = sound
+
+            for sound in self._sounds.values():
+                try:
+                    sound.set_volume(0.35)
+                except Exception:
+                    pass
 
     def play_ui_sound(self, key):
         """Play a pre-loaded UI sound effect."""
         if key in self._sounds:
             self._sounds[key].play()
 
+    def _build_arcade_sound(self, kind):
+        try:
+            sample_rate = 22050
+            if kind == "move":
+                duration = 0.08
+                t = np.linspace(0, duration, int(sample_rate * duration), False)
+                freq = np.linspace(760, 430, t.size)
+                wave = np.sign(np.sin(2 * np.pi * freq * t)) * 0.22
+            else:
+                duration = 0.16
+                t = np.linspace(0, duration, int(sample_rate * duration), False)
+                split = t.size // 3
+                freq = np.concatenate([
+                    np.full(split, 523.25),
+                    np.full(split, 659.25),
+                    np.full(t.size - split * 2, 783.99),
+                ])
+                wave = np.sign(np.sin(2 * np.pi * freq * t)) * 0.18
+
+            envelope = np.linspace(1.0, 0.0, wave.size)
+            audio = np.clip(wave * envelope, -1.0, 1.0)
+            samples = (audio * 32767).astype(np.int16)
+            return pygame.sndarray.make_sound(samples)
+        except Exception:
+            return None
+
     def _init_subsystems(self):
         """Initialize all kiosk subsystems."""
+        self._load_runtime_settings()
+
         # Camera capture (threaded)
         self._capture = CaptureThread(
             camera_index=config.CAMERA_INDEX,
@@ -174,6 +208,7 @@ class Renderer:
         self._screensaver.init(self._sw, self._sh)
         self._tutorial = GestureTutorial()
         self._tutorial.init_fonts()
+        self._load_video_playlist()
 
     def _main_loop(self):
         """Core game loop: events → update → draw."""
@@ -192,7 +227,7 @@ class Renderer:
                         if self._tutorial.is_done:
                             self._scene = Scene.HOME
                     elif self._scene == Scene.SCREENSAVER:
-                        self._screensaver.notify_interaction()
+                        pass
                     elif self._scene == Scene.HOME:
                         content = self._home.get_selected_content()
                         if content is not None:
@@ -207,25 +242,15 @@ class Renderer:
                 landmarks, handedness = self._tracker.process(frame)
                 gesture = self._gesture_engine.update(landmarks)
 
-            # Check for screensaver
-            if self._tracker.hand_detected:
-                self._screensaver.notify_interaction()
+            if self._scene == Scene.VIEWER or (self._scene == Scene.HOME and self._tracker.hand_detected):
+                self._screensaver.notify_menu_activity()
 
             if self._screensaver.is_active and self._scene != Scene.VIEWER:
                 self._scene = Scene.SCREENSAVER
-            
-            # Handle cinematic transition completion
-            if self._scene == Scene.SCREENSAVER and self._screensaver.transition_done:
+
+            if self._scene == Scene.SCREENSAVER and self._screensaver.menu_requested:
                 self._screensaver.deactivate()
-                if self._first_launch:
-                    # Show tutorial on first launch
-                    self._first_launch = False
-                    self._tutorial.start()
-                    self._scene = Scene.TUTORIAL
-                else:
-                    self._scene = Scene.HOME
-                    self._home._enter_time = time.time()
-                    self._home._transition_alpha = 0
+                self._enter_primary_experience()
 
             # Update current scene
             # Use mouse as backup if no hand is detected
@@ -244,42 +269,39 @@ class Renderer:
                 if pending is not None:
                     self._handle_home_selection(pending)
             elif self._scene == Scene.VIEWER:
-                self._viewer.update(dt)
+                self._viewer.update(dt, cursor, (self._sw, self._sh))
                 if self._viewer.should_close:
-                    self._viewer.close()
-                    self._scene = Scene.HOME
-                    self._home.reload_content()
+                    if self._experience_mode == "perpetual" and self._video_playlist:
+                        self._viewer.close()
+                        self._open_playlist_item(self._playlist_index)
+                    else:
+                        self._viewer.close()
+                        self._scene = Scene.HOME
+                        self._home.reload_content()
 
             # Update overlays
-            self._hand_overlay.update(landmarks, gesture, self._sw, self._sh)
+            self._hand_overlay.update(landmarks, gesture, self._sw, self._sh, dt)
             
             # Update trail with cursor (mouse or hand)
-            if cursor:
-                self._trail.update(cursor, self._sw, self._sh)
+            self._trail.update(cursor, self._sw, self._sh)
             
             self._hud.update(gesture, self._tracker.hand_detected or pygame.mouse.get_focused(),
                              self._capture.fps)
-            self._screensaver.update(dt)
+            self._screensaver.update(dt, self._tracker.hand_detected)
 
             # ─── Draw ─────────────────────────────────────────────────
             self._screen.fill(config.BG_PRIMARY)
 
             if self._scene == Scene.SCREENSAVER:
                 self._screensaver.draw(self._screen)
-                # Show hand overlay or trail on screensaver
-                if self._tracker.hand_detected:
-                    self._hand_overlay.draw(self._screen)
-                else:
-                    self._trail.draw(self._screen)
+                self._hand_overlay.draw(self._screen)
             elif self._scene == Scene.HOME:
                 self._home.draw(self._screen)
                 self._hand_overlay.draw(self._screen)
-                if not landmarks: self._trail.draw(self._screen) # Draw mouse trail if no hand
                 self._hud.draw(self._screen)
             elif self._scene == Scene.VIEWER:
                 self._viewer.draw(self._screen)
                 self._hand_overlay.draw(self._screen)
-                if not landmarks: self._trail.draw(self._screen)
                 self._hud.draw(self._screen)
 
             # Tutorial overlay (draws on top of current scene)
@@ -308,8 +330,6 @@ class Renderer:
     def _on_gesture_event(self, event):
         """Handle discrete gesture events from the engine."""
         if self._scene == Scene.SCREENSAVER:
-            # Any gesture exits screensaver
-            self._scene = Scene.HOME
             return
 
         if self._scene == Scene.HOME:
@@ -324,7 +344,15 @@ class Renderer:
                 self._home.scroll(-1)
 
         elif self._scene == Scene.VIEWER:
-            self._viewer.handle_gesture(event.type)
+            if self._experience_mode == "perpetual" and self._video_playlist:
+                if event.type == "SWIPE_LEFT":
+                    self._cycle_playlist(1)
+                elif event.type == "SWIPE_RIGHT":
+                    self._cycle_playlist(-1)
+                elif event.type == "OPEN_PALM":
+                    self._viewer.handle_gesture(event.type)
+            else:
+                self._viewer.handle_gesture(event.type)
             
         elif self._scene == Scene.TUTORIAL:
             # Any significant gesture moves tutorial forward
@@ -332,8 +360,6 @@ class Renderer:
                 self._tutorial.next_step()
                 if self._tutorial.is_done:
                     self._scene = Scene.HOME
-                    self._home._enter_time = time.time()
-                    self._home._transition_alpha = 0
 
     def _handle_key(self, key):
         """Handle keyboard events (for development/debug)."""
@@ -344,8 +370,6 @@ class Renderer:
             if self._scene == Scene.TUTORIAL:
                 self._tutorial.stop()
                 self._scene = Scene.HOME
-                self._home._enter_time = time.time()
-                self._home._transition_alpha = 0
             elif self._scene == Scene.VIEWER:
                 self._viewer.close()
                 self._scene = Scene.HOME
@@ -357,8 +381,17 @@ class Renderer:
                 self._tutorial.next_step()
                 if self._tutorial.is_done:
                     self._scene = Scene.HOME
-                    self._home._enter_time = time.time()
-                    self._home._transition_alpha = 0
+            elif self._scene == Scene.VIEWER:
+                self._viewer.handle_key(key)
+
+        elif key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN,
+                     pygame.K_PLUS, pygame.K_KP_PLUS, pygame.K_EQUALS,
+                     pygame.K_MINUS, pygame.K_KP_MINUS):
+            if self._scene == Scene.VIEWER:
+                if self._experience_mode == "perpetual" and key in (pygame.K_LEFT, pygame.K_RIGHT):
+                    self._cycle_playlist(-1 if key == pygame.K_LEFT else 1)
+                else:
+                    self._viewer.handle_key(key)
 
         elif key == pygame.K_l:
             # Toggle language
@@ -427,3 +460,58 @@ class Renderer:
         if self._viewer:
             self._viewer.close()
         pygame.quit()
+
+    def _load_runtime_settings(self):
+        self._experience_mode = "menu"
+        if not os.path.exists(config.MANIFEST_PATH):
+            return
+        try:
+            with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            settings = payload.get("settings") or {}
+            mode = (settings.get("experience_mode") or "menu").strip()
+            if mode in {"menu", "perpetual"}:
+                self._experience_mode = mode
+        except Exception:
+            pass
+
+    def _load_video_playlist(self):
+        self._video_playlist = []
+        self._playlist_index = 0
+        if not os.path.exists(config.MANIFEST_PATH):
+            return
+        try:
+            with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            raw_content = payload.get("content", [])
+            videos = [item for item in raw_content if item.get("enabled", True) and item.get("type") == "video"]
+            videos.sort(key=lambda item: (
+                (item.get("category") or "General").lower(),
+                int(item.get("sort_order", 0) or 0),
+                item.get("title", "").lower(),
+            ))
+            self._video_playlist = videos
+        except Exception:
+            self._video_playlist = []
+
+    def _enter_primary_experience(self):
+        if self._experience_mode == "perpetual" and self._video_playlist:
+            self._open_playlist_item(self._playlist_index)
+        else:
+            self._scene = Scene.HOME
+
+    def _open_playlist_item(self, index):
+        if not self._video_playlist:
+            self._scene = Scene.HOME
+            return
+        self._playlist_index = index % len(self._video_playlist)
+        item = self._video_playlist[self._playlist_index]
+        if self._viewer.open(item):
+            self._scene = Scene.VIEWER
+
+    def _cycle_playlist(self, direction):
+        if not self._video_playlist:
+            return
+        self.play_ui_sound("whoosh")
+        self._viewer.close()
+        self._open_playlist_item(self._playlist_index + direction)
