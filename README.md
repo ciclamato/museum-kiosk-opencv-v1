@@ -38,9 +38,13 @@ The easiest way to install and run the project on Windows is by using the includ
 #### Linux / Raspberry Pi OS
 On Raspberry Pi OS and other Debian-based systems, the project uses a local virtual environment in `./.venv`.
 
+**Requirements:**
+- **OS**: Raspberry Pi OS **64-bit** (MediaPipe does not support 32-bit).
+- **Python**: **3.11 or 3.12** are recommended. Python 3.13 is currently not supported by MediaPipe.
+
 ```bash
 sudo apt update
-sudo apt install -y python3-venv python3-full
+sudo apt install -y python3-venv python3-full libgl1-mesa-glx libglib2.0-0 libusb-1.0-0
 chmod +x launcher.sh run_kiosk.sh run_admin.sh install_requirements.sh
 ./install_requirements.sh
 ```
