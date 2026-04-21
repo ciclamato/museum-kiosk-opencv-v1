@@ -12,7 +12,7 @@ PYTHON_EXE=${PYTHON_EXE:-python3}
 
 if ! command -v "$PYTHON_EXE" >/dev/null 2>&1; then
   echo "[ERROR] $PYTHON_EXE not found."
-  echo "Install Python 3.9 - 3.12 and make sure it is available in PATH."
+  echo "Please make sure Python 3.9 - 3.12 is installed and available in your PATH."
   exit 1
 fi
 
