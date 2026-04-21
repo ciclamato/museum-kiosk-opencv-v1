@@ -25,7 +25,8 @@ A touchless, gesture-controlled interactive interface designed for museum exhibi
 ### 1. Prerequisites
 - Python 3.8 or higher.
 - A webcam or similar video input device.
-
+- 
+wget -O assets/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
 ### 2. Installation
 
 #### Windows
