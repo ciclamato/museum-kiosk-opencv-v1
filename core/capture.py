@@ -122,60 +122,80 @@ class CaptureThread:
     def _try_connect(self):
         """Attempt to open the camera. Auto-scans if current index fails."""
         import sys
+        import platform
         
+        is_windows = platform.system() == "Windows"
+
         def test_cap(idx):
-            # Try DSHOW then default
-            c = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
-            if not c.isOpened():
-                c = cv2.VideoCapture(idx)
-            if c.isOpened():
-                ret, _ = c.read()
-                if ret: return c
-                c.release()
+            """Test if a camera index is genuinely working and producing frames."""
+            caps_to_try = []
+            if is_windows:
+                caps_to_try = [cv2.CAP_DSHOW, cv2.CAP_ANY]
+            else:
+                # On Linux, V4L2 is the standard. 
+                # We try V4L2 specifically as it helps avoid some generic probe errors.
+                caps_to_try = [cv2.CAP_V4L2, cv2.CAP_ANY]
+
+            for backend in caps_to_try:
+                try:
+                    c = cv2.VideoCapture(idx, backend)
+                    if c.isOpened():
+                        # Set small resolution for fast probe
+                        c.set(cv2.CAP_PROP_FRAME_WIDTH, 160)
+                        c.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
+                        
+                        # Grab a few frames to flush buffers and ensure it's not a dummy device
+                        for _ in range(3):
+                            ret, frame = c.read()
+                        
+                        if ret and frame is not None:
+                            # Final check: is the frame non-zero? 
+                            # (Some virtual devices return empty/black frames successfullly)
+                            if np.max(frame) > 0:
+                                return c
+                        c.release()
+                except:
+                    continue
             return None
 
         try:
-            print(f"[DEBUG] Testing camera index {self.camera_index}...")
+            print(f"[DEBUG] Probing primary camera index {self.camera_index}...")
             sys.stdout.flush()
             cap = test_cap(self.camera_index)
             
             if cap is None:
-                print(f"[DEBUG] Camera {self.camera_index} failed. Auto-scanning...")
+                print(f"[DEBUG] Camera {self.camera_index} failed or returned empty frames. Scanning all devices...")
                 sys.stdout.flush()
-                # Try indices 0-5
-                for i in range(6):
+                # Expand search range for Raspberry Pi (RPi Cam often appears at higher indices)
+                # We check 0-10 to be safe.
+                for i in range(11):
                     if i == self.camera_index: continue
-                    print(f"[DEBUG] Testing camera index {i}...")
-                    sys.stdout.flush()
                     cap = test_cap(i)
                     if cap is not None:
                         self.camera_index = i
-                        print(f"[DEBUG] Found working camera at index {i}")
+                        print(f"[DEBUG] Auto-detected working camera at index {i}")
                         sys.stdout.flush()
                         break
             
             if cap is None:
-                print("[DEBUG] No working cameras found!")
+                print("[DEBUG] CRITICAL: No functional video capture devices found.")
                 sys.stdout.flush()
                 return None
 
-            print(f"[DEBUG] Camera index {self.camera_index} opened successfully.")
+            print(f"[DEBUG] Camera index {self.camera_index} verified and opened.")
             sys.stdout.flush()
+            
+            # Apply requested resolution
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             cap.set(cv2.CAP_PROP_FPS, 30)
-            # Try to get actual resolution
-            w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-            h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-            print(f"[DEBUG] Camera resolution: {w}x{h}")
-            sys.stdout.flush()
             
-            # Reduce buffer to minimize latency
+            # Reduce buffer to minimize latency (very important for gestures!)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
             self._connected = True
             return cap
         except Exception as e:
-            print(f"[DEBUG] Error scanning cameras: {e}")
+            print(f"[DEBUG] Error during camera scan: {e}")
             sys.stdout.flush()
             return None
