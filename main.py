@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 """
-Museum Kiosk — Main Entry Point
-Gesture-controlled touchless content viewer for museum kiosks.
-Powered by OpenCV, MediaPipe, and Pygame.
+Museum Kiosk — Ultra-Lightweight Video Kiosk
+Perpetual video loop with hand gesture navigation.
+Optimized for Raspberry Pi 4.
 
 Usage:
-    python main.py                    # Normal kiosk mode (fullscreen)
+    python main.py                    # Kiosk mode (fullscreen)
     python main.py --windowed         # Windowed mode for development
-    python main.py --debug            # Debug mode (shows FPS, mouse cursor)
+    python main.py --debug            # Debug mode
     python main.py --camera 1         # Use camera index 1
-    python main.py --admin            # Run web admin panel instead of kiosk
-    python main.py --lang en          # Start in English
+    python main.py --admin            # Run web admin panel
 
-Keyboard Shortcuts (dev mode):
-    ESC   = Exit / Back
-    L     = Toggle language (ES/EN)
-    D     = Toggle debug mode
+Keyboard Shortcuts:
+    ESC   = Exit
+    LEFT  = Previous video
+    RIGHT = Next video
+    D     = Toggle debug
     F     = Toggle fullscreen
-    C     = Cycle camera index
 """
 import argparse
 import sys
@@ -27,16 +26,8 @@ import time
 
 
 def run_kiosk(args):
-    """Start the kiosk application."""
+    """Start the ultra-lightweight kiosk."""
     import config
-
-    # Apply CLI overrides
-    if args.lang:
-        config.DEFAULT_LANGUAGE = args.lang
-
-    # Set language
-    from translations import i18n
-    i18n.set_language(config.DEFAULT_LANGUAGE)
 
     from ui.renderer import Renderer
 
@@ -46,21 +37,19 @@ def run_kiosk(args):
         debug=args.debug,
     )
 
-    # Auto-restart loop for kiosk resilience
     max_restarts = 5
     restart_count = 0
 
     while restart_count < max_restarts:
         try:
-            print(f"\n  [INFO] Museo Kiosk -- Iniciando...")
-            print(f"  [INFO] Camara: {args.camera}")
-            print(f"  [INFO] Idioma: {config.DEFAULT_LANGUAGE.upper()}")
-            print(f"  [INFO] Modo: {'Ventana' if args.windowed else 'Pantalla completa'}")
-            print(f"  [INFO] Debug: {'Si' if args.debug else 'No'}")
+            print(f"\n  [KIOSK] Museo Kiosk Lite — Iniciando...")
+            print(f"  [KIOSK] Camara: {args.camera}")
+            print(f"  [KIOSK] Modo: {'Ventana' if args.windowed else 'Pantalla completa'}")
+            print(f"  [KIOSK] Debug: {'Si' if args.debug else 'No'}")
             print(f"  ---------------------------------\n")
 
             renderer.run()
-            break  # Clean exit
+            break
 
         except KeyboardInterrupt:
             print("\n[INFO] Kiosk detenido por el usuario.")
@@ -75,7 +64,6 @@ def run_kiosk(args):
                 wait = min(5 * restart_count, 15)
                 print(f"[INFO] Reiniciando en {wait}s...")
                 time.sleep(wait)
-                # Re-create renderer for clean state
                 renderer = Renderer(
                     camera_index=args.camera,
                     fullscreen=not args.windowed,
@@ -94,28 +82,22 @@ def run_admin(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Museum Kiosk — Gesture-Controlled Content Viewer",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__,
+        description="Museum Kiosk Lite — Ultra-Lightweight Video Kiosk",
     )
 
     parser.add_argument("--windowed", "-w", action="store_true",
-                        help="Run in windowed mode (default: fullscreen)")
+                        help="Run in windowed mode")
     parser.add_argument("--debug", "-d", action="store_true",
-                        help="Enable debug mode (FPS counter, mouse visible)")
+                        help="Enable debug mode")
     parser.add_argument("--camera", "-c", type=int, default=0,
                         help="Camera index (default: 0)")
     parser.add_argument("--admin", "-a", action="store_true",
-                        help="Run the web admin panel instead of the kiosk")
-    parser.add_argument("--lang", "-l", type=str, default=None,
-                        choices=["es", "en"],
-                        help="Interface language (default: es)")
+                        help="Run the web admin panel")
 
     args = parser.parse_args()
 
-    # Ensure content directories exist
-    for subdir in ["videos", "pdfs", "images", "thumbnails"]:
-        os.makedirs(os.path.join("content", subdir), exist_ok=True)
+    os.makedirs(os.path.join("content", "videos"), exist_ok=True)
+    os.makedirs(os.path.join("content", "thumbnails"), exist_ok=True)
 
     if args.admin:
         run_admin(args)

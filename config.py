@@ -1,6 +1,6 @@
 """
-Museum Kiosk — Configuration
-All tunable constants in one place. Adjust for your hardware.
+Museum Kiosk — Ultra-Lightweight Configuration
+Raspberry Pi 4 optimized. Videos only, perpetual loop.
 """
 import os
 
@@ -9,7 +9,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONTENT_DIR = os.path.join(BASE_DIR, "content")
 MANIFEST_PATH = os.path.join(CONTENT_DIR, "manifest.json")
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
-FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
 CAMERA_INDEX = 0
@@ -22,78 +21,33 @@ INFERENCE_HEIGHT = 96
 MAX_HANDS = 1
 MIN_DETECTION_CONFIDENCE = 0.5
 MIN_TRACKING_CONFIDENCE = 0.3
-FRAME_SKIP = 3             # Process MediaPipe every 3rd frame (10 FPS tracking @ 30 FPS loop)
+FRAME_SKIP = 3             # Process MediaPipe every 3rd frame
 
 # ─── Display ──────────────────────────────────────────────────────────────────
-DISPLAY_FPS = 30           # Smooth enough for interactive feel
-FULLSCREEN = True           # Set False for dev/windowed mode
-WINDOW_WIDTH = 1280         # Used only in windowed mode
+DISPLAY_FPS = 30
+FULLSCREEN = True
+WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 720
 
-# ─── Gesture Thresholds ──────────────────────────────────────────────────────
-SWIPE_THRESHOLD = 0.22      # Normalized x-delta for deliberate swipe
-SWIPE_FRAMES = 10           # More history reduces accidental swipes
-PINCH_THRESHOLD = 0.055     # Slightly stricter pinch
-GESTURE_COOLDOWN_MS = 900   # Debounce repeated gesture events (ms)
-POINT_THRESHOLD = 0.03      # Min movement to register pointer movement
+# ─── Gesture Thresholds (swipe only) ─────────────────────────────────────────
+SWIPE_THRESHOLD = 0.22
+SWIPE_FRAMES = 10
+GESTURE_COOLDOWN_MS = 900
 
-# ─── Phantom Trail ────────────────────────────────────────────────────────────
-TRAIL_MAX_POINTS = 12       # Very short trail to save blending CPU
-TRAIL_FADE_RATE = 0.7       # Faster fade keeps the trail light to render
-TRAIL_BASE_WIDTH = 4        # Thinner trail
-TRAIL_MIN_WIDTH = 1
-TRAIL_COLOR = (122, 162, 247) # Tokyo Blue glow
+# ─── Video ────────────────────────────────────────────────────────────────────
+VIDEO_MAX_FPS = 30          # Match display for smooth playback
+AUTO_ADVANCE_S = 0          # 0 = never auto-advance (only manual swipe or video end)
 
-# ─── Colors (Tokyo Night Theme) ──────────────────────────────────────────────
-BG_PRIMARY = (20, 21, 28)          # Near-black blue
-BG_SECONDARY = (26, 27, 38)       # Slightly lighter blue
-BG_TERTIARY = (32, 35, 50)        # Hover/Active blue
-ACCENT_PRIMARY = (122, 162, 247)   # Tokyo Blue
-ACCENT_SECONDARY = (187, 154, 247)  # Tokyo Purple
-ACCENT_WARNING = (247, 118, 142)   # Tokyo Red/Pink
-ACCENT_SUCCESS = (158, 206, 106)   # Tokyo Green
-TEXT_PRIMARY = (192, 202, 245)     # Tokyo Silver/White
-TEXT_SECONDARY = (169, 177, 214)   # Tokyo Gray
-TEXT_DIM = (100, 107, 142)         # Very dim blue-gray
-OVERLAY_BG = (20, 21, 28, 180)     # Semi-transparent overlay
+# ─── Overlay Text ─────────────────────────────────────────────────────────────
+OVERLAY_FONT_SIZE = 42      # Font size for hand-triggered overlay text
+OVERLAY_COLOR = (255, 255, 255)
+OVERLAY_BG_ALPHA = 160      # Semi-transparent background behind text
+OVERLAY_FADE_SPEED = 8      # Alpha increment per frame (0-255)
 
-# ─── Hand Overlay ─────────────────────────────────────────────────────────────
-HAND_SKELETON_COLOR = (0, 255, 208, 100)  # Skeleton lines
-HAND_LANDMARK_COLOR = (255, 255, 255)      # Joint dots
-HAND_CURSOR_RADIUS = 12                    # Cursor dot size
-HAND_CURSOR_GLOW_RADIUS = 24              # Outer glow radius
-HAND_SMOOTHING = 0.42                     # Visual interpolation factor for the skeleton
-
-# Cursor color changes by gesture
-CURSOR_COLORS = {
-    "IDLE":      (0, 255, 208),    # Teal
-    "POINT":     (0, 255, 208),    # Teal
-    "OPEN_PALM": (80, 255, 120),   # Green — select
-    "FIST":      (255, 80, 80),    # Red — back
-    "PINCH":     (255, 200, 50),   # Gold — zoom
-    "SWIPE_LEFT":  (120, 80, 255), # Purple
-    "SWIPE_RIGHT": (120, 80, 255), # Purple
-}
-
-# ─── Screensaver ──────────────────────────────────────────────────────────────
-SCREENSAVER_TIMEOUT_S = 30        # Seconds of no hand -> screensaver
-SCREENSAVER_PRESENCE_HOLD_S = 4.0 # Presence time on screensaver -> menu
-SCREENSAVER_VIDEO_MAX_FPS = 24    # Limit attract video playback on Raspberry Pi 4
-
-# ─── Content Viewer ──────────────────────────────────────────────────────────
-PDF_RENDER_DPI = 72          # Faster page turns
-VIDEO_MAX_FPS = 24           # Cap content video playback FPS
-VIDEO_AUDIO_ENABLED = True   # Play audio from video files
-PERPETUAL_AUTO_ADVANCE_S = 25 # Idle time before next item in perpetual mode
-
-# ─── i18n ─────────────────────────────────────────────────────────────────────
-DEFAULT_LANGUAGE = "es"      # Spanish first
-SUPPORTED_LANGUAGES = ["es", "en"]
-
-# ─── Experience Modes ─────────────────────────────────────────────────────────
-MODE_MENU = "menu"           # Interactive menu with categories
-MODE_PERPETUAL = "perpetual" # Continuous slideshow/video loop
-DEFAULT_MODE = MODE_MENU
+# ─── Colors (Minimal) ────────────────────────────────────────────────────────
+BG_PRIMARY = (0, 0, 0)            # Pure black for video kiosk
+ACCENT_PRIMARY = (0, 255, 208)    # Teal accent
+TEXT_PRIMARY = (255, 255, 255)
 
 # ─── Admin Panel ──────────────────────────────────────────────────────────────
 ADMIN_HOST = "0.0.0.0"
@@ -103,4 +57,3 @@ ADMIN_SECRET_KEY = "museum-kiosk-admin-change-me"
 # ─── Debug ────────────────────────────────────────────────────────────────────
 DEBUG_MODE = False
 SHOW_FPS = False
-SHOW_CAMERA_PREVIEW = False

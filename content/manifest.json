@@ -1,15 +1,24 @@
 {
   "content": [
     {
+      "id": "exhibit-2de266ef",
+      "title": "CC",
+      "type": "pdf",
+      "file": "pdfs/agua-que-viene-agua-que-va.pdf",
+      "thumbnail": "thumbnails/agua-que-viene-agua-que-va.jpg",
+      "overlay_text": "",
+      "sort_order": 1,
+      "enabled": true
+    },
+    {
       "id": "exhibit-8d53917a",
       "title": "a",
       "type": "video",
       "file": "videos/Grabacion_de_pantalla_2026-02-05_132258.mp4",
       "thumbnail": "thumbnails/Grabacion_de_pantalla_2026-02-05_132258.jpg",
-      "description": "a",
-      "category": "General",
-      "sort_order": 1,
-      "enabled": false
+      "overlay_text": "",
+      "sort_order": 2,
+      "enabled": true
     },
     {
       "id": "exhibit-eac7bf15",
@@ -17,25 +26,9 @@
       "type": "video",
       "file": "videos/videoplayback.mp4",
       "thumbnail": "thumbnails/videoplayback.jpg",
-      "description": "AA",
-      "category": "General",
-      "sort_order": 2,
-      "enabled": false
-    },
-    {
-      "id": "exhibit-2de266ef",
-      "title": "CC",
-      "type": "pdf",
-      "file": "pdfs/agua-que-viene-agua-que-va.pdf",
-      "thumbnail": "thumbnails/agua-que-viene-agua-que-va.jpg",
-      "description": "CC",
-      "category": "General",
+      "overlay_text": "",
       "sort_order": 3,
-      "enabled": false
+      "enabled": true
     }
-  ],
-  "settings": {
-    "screensaver": "",
-    "experience_mode": "perpetual"
-  }
+  ]
 }

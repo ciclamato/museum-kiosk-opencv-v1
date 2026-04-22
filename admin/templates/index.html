@@ -3,320 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Museo Kiosk — Admin</title>
+    <title>Museo Kiosk Lite — Admin</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #0c0c12;
-            --bg-secondary: #161620;
-            --bg-tertiary: #202030;
+            --bg: #0a0a10;
+            --bg2: #12121c;
+            --bg3: #1a1a28;
             --accent: #00ffd0;
-            --accent-secondary: #7850ff;
-            --danger: #ff5050;
-            --success: #50ff78;
-            --text: #f0f0f5;
-            --text-muted: #a0a0b4;
-            --text-dim: #505064;
-            --radius: 12px;
-            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --accent2: #7850ff;
+            --danger: #ff4444;
+            --success: #44ff88;
+            --text: #eeeef4;
+            --muted: #888899;
+            --dim: #444455;
+            --r: 10px;
         }
 
         body {
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg-primary);
+            background: var(--bg);
             color: var(--text);
             min-height: 100vh;
         }
 
-        /* ─── Header ──────────────────────────────── */
+        /* ─── Header ──────────────────────── */
         header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            padding: 16px 32px;
+            background: var(--bg2);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 14px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         header h1 {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
-            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        header a {
-            padding: 8px 20px;
-            background: var(--accent);
-            color: var(--bg-primary);
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        header a:hover {
-            opacity: 0.85;
-            transform: translateY(-1px);
-        }
-
-        /* ─── Flash Messages ──────────────────────── */
-        .flash {
-            padding: 12px 24px;
-            margin: 16px 32px;
-            border-radius: var(--radius);
-            font-size: 14px;
-            animation: slideIn 0.3s ease;
-        }
-
-        .flash.success {
-            background: rgba(80,255,120,0.1);
-            border: 1px solid rgba(80,255,120,0.3);
-            color: var(--success);
-        }
-
-        .flash.error {
-            background: rgba(255,80,80,0.1);
-            border: 1px solid rgba(255,80,80,0.3);
-            color: var(--danger);
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ─── Content Grid ────────────────────────── */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 32px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: var(--bg-secondary);
-            border-radius: var(--radius);
-            border: 1px solid rgba(255,255,255,0.06);
-            overflow: hidden;
-            transition: all 0.3s;
-        }
-
-        .card:hover {
-            border-color: rgba(0,255,208,0.2);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .card-thumb {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-            background: var(--bg-tertiary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .card-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .card-thumb .type-badge {
-            padding: 8px 16px;
-            background: rgba(0,255,208,0.15);
-            color: var(--accent);
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .card-body {
-            padding: 16px;
-        }
-
-        .card-body h3 {
-            font-size: 16px;
-            margin-bottom: 6px;
-        }
-
-        .card-body p {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
-
-        .card-body .meta {
-            font-size: 11px;
-            color: var(--text-dim);
-            margin-bottom: 12px;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 8px;
-        }
+        header .actions { display: flex; gap: 10px; align-items: center; }
 
         .btn {
-            padding: 6px 14px;
+            padding: 8px 18px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
+            gap: 6px;
         }
 
-        .btn-edit {
-            background: rgba(120,80,255,0.15);
-            color: var(--accent-secondary);
+        .btn-accent {
+            background: var(--accent);
+            color: var(--bg);
         }
 
-        .btn-edit:hover {
-            background: rgba(120,80,255,0.3);
+        .btn-accent:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.06);
+            color: var(--muted);
         }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); }
 
         .btn-danger {
-            background: rgba(255,80,80,0.1);
+            background: rgba(255,68,68,0.12);
             color: var(--danger);
         }
 
-        .btn-danger:hover {
-            background: rgba(255,80,80,0.25);
+        .btn-danger:hover { background: rgba(255,68,68,0.25); }
+
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ─── Flash ───────────────────────── */
+        .flash {
+            padding: 10px 20px;
+            margin: 12px 28px;
+            border-radius: var(--r);
+            font-size: 13px;
+            animation: fadeIn 0.3s;
         }
 
-        /* ─── Forms ───────────────────────────────── */
-        .form-container {
-            max-width: 600px;
+        .flash.success {
+            background: rgba(68,255,136,0.08);
+            border: 1px solid rgba(68,255,136,0.2);
+            color: var(--success);
+        }
+
+        .flash.error {
+            background: rgba(255,68,68,0.08);
+            border: 1px solid rgba(255,68,68,0.2);
+            color: var(--danger);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Container ──────────────────── */
+        .container {
+            max-width: 900px;
             margin: 0 auto;
-            padding: 32px;
+            padding: 24px 28px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 6px;
+        .section-title {
+            font-size: 14px;
+            color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--bg-tertiary);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 15px;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .form-group input[type="file"] {
-            padding: 8px;
-        }
-
-        .form-group input[type="file"]::file-selector-button {
-            padding: 6px 14px;
-            background: var(--accent);
-            color: var(--bg-primary);
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            margin-right: 12px;
-        }
-
-        .form-actions {
+            letter-spacing: 1px;
+            margin-bottom: 16px;
             display: flex;
-            gap: 12px;
-            margin-top: 24px;
+            align-items: center;
+            gap: 8px;
         }
 
-        .btn-primary {
-            padding: 10px 24px;
-            background: var(--accent);
-            color: var(--bg-primary);
+        .section-title .count {
+            background: var(--bg3);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* ─── Video List ─────────────────── */
+        .video-list { display: flex; flex-direction: column; gap: 8px; }
+
+        .video-item {
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: 16px;
+            align-items: center;
+            background: var(--bg2);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: var(--r);
+            padding: 12px;
+            transition: all 0.2s;
+        }
+
+        .video-item:hover {
+            border-color: rgba(0,255,208,0.15);
+            box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+        }
+
+        .video-item.disabled { opacity: 0.45; }
+
+        .video-thumb {
+            width: 120px;
+            height: 68px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--bg3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-thumb .placeholder {
+            font-size: 28px;
+        }
+
+        .video-info h3 {
+            font-size: 15px;
             font-weight: 600;
+            margin-bottom: 4px;
         }
 
-        .btn-primary:hover {
-            opacity: 0.9;
+        .video-info .meta {
+            font-size: 12px;
+            color: var(--dim);
         }
 
-        .btn-secondary {
-            padding: 10px 24px;
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
+        .video-info .overlay-preview {
+            font-size: 12px;
+            color: var(--accent);
+            margin-top: 4px;
+            font-style: italic;
         }
 
-        .btn-secondary:hover {
-            background: var(--bg-secondary);
-            color: var(--text);
+        .video-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
+        .video-actions form { display: inline; }
+
+        /* ─── Empty ──────────────────────── */
         .empty-state {
             text-align: center;
-            padding: 80px 20px;
-            color: var(--text-dim);
+            padding: 60px 20px;
+            color: var(--dim);
         }
 
-        .empty-state h2 {
-            font-size: 24px;
-            margin-bottom: 8px;
-            color: var(--text-muted);
+        .empty-state h2 { color: var(--muted); margin-bottom: 8px; }
+
+        /* ─── Status bar ─────────────────── */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
         }
 
-        .empty-state p {
-            font-size: 15px;
-        }
+        .status-enabled { background: var(--success); }
+        .status-disabled { background: var(--danger); }
 
-        /* ─── Confirm Dialog ──────────────────────── */
-        .confirm-form {
-            display: inline;
+        /* ─── Responsive ─────────────────── */
+        @media (max-width: 600px) {
+            .video-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .video-thumb { width: 100%; height: 140px; }
+            .video-actions { justify-content: flex-start; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>🖥 Museo Kiosk — Administración</h1>
-        <a href="{{ url_for('add_content') }}">+ Agregar Contenido</a>
+        <h1>🎬 Museo Kiosk Lite</h1>
+        <div class="actions">
+            <a href="{{ url_for('add_content') }}" class="btn btn-accent">+ Agregar Video</a>
+        </div>
     </header>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -326,69 +253,59 @@
     {% endwith %}
 
     <div class="container">
-        <!-- ─── Global Settings ──────────────────────── -->
-        <section style="background: var(--bg-secondary); padding: 24px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.06); margin-bottom: 32px;">
-            <h2 style="font-size: 18px; margin-bottom: 20px; color: var(--accent);">⚙️ Configuración Global</h2>
-            <form action="{{ url_for('update_settings') }}" method="post" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; align-items: end;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Modo de Experiencia</label>
-                    <select name="experience_mode">
-                        <option value="menu" {% if settings.experience_mode == 'menu' %}selected{% endif %}>Menú Interactivo</option>
-                        <option value="perpetual" {% if settings.experience_mode == 'perpetual' %}selected{% endif %}>Modo Perpetuo (Bucle)</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <label>Video Screensaver</label>
-                    <select name="screensaver">
-                        <option value="">-- Ninguno (Efecto Nebulosa) --</option>
-                        {% for option in screensaver_options %}
-                            <option value="{{ option.value }}" {% if settings.screensaver == option.value %}selected{% endif %}>
-                                {{ option.label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="padding-bottom: 0;">
-                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 42px; justify-content: center;">Guardar Cambios</button>
-                </div>
-            </form>
-        </section>
+        <div class="section-title">
+            📼 Videos en Playlist
+            <span class="count">{{ content | length }}</span>
+        </div>
 
-        <h2 style="font-size: 18px; margin-bottom: 16px; color: var(--text-muted);">📦 Contenido del Kiosk</h2>
         {% if content %}
-            <div class="grid">
+            <div class="video-list">
                 {% for item in content %}
-                <div class="card">
-                    <div class="card-thumb">
+                <div class="video-item {{ 'disabled' if not item.enabled }}">
+                    <div class="video-thumb">
                         {% if item.thumbnail %}
                             <img src="{{ url_for('serve_content', filepath=item.thumbnail) }}"
                                  alt="{{ item.title }}">
                         {% else %}
-                            <span class="type-badge">{{ item.type }}</span>
+                            <span class="placeholder">🎬</span>
                         {% endif %}
                     </div>
-                    <div class="card-body">
-                        <h3>{{ item.title }}</h3>
-                        <p>{{ item.description or 'Sin descripción' }}</p>
-                        <div class="meta">ID: {{ item.id }} · {{ item.type | upper }} · {{ item.file }}</div>
-                        <div class="card-actions">
-                            <a href="{{ url_for('edit_content', content_id=item.id) }}"
-                               class="btn btn-edit">✏️ Editar</a>
-                            <form class="confirm-form"
-                                  action="{{ url_for('delete_content', content_id=item.id) }}"
-                                  method="post"
-                                  onsubmit="return confirm('¿Eliminar este contenido?')">
-                                <button type="submit" class="btn btn-danger">🗑 Eliminar</button>
-                            </form>
-                        </div>
+                    <div class="video-info">
+                        <h3>
+                            <span class="status-dot {{ 'status-enabled' if item.enabled else 'status-disabled' }}"></span>
+                            {{ item.title }}
+                        </h3>
+                        <div class="meta">{{ item.file }} · #{{ item.sort_order }}</div>
+                        {% if item.overlay_text %}
+                            <div class="overlay-preview">💬 "{{ item.overlay_text }}"</div>
+                        {% endif %}
+                    </div>
+                    <div class="video-actions">
+                        <form action="{{ url_for('move_content', content_id=item.id, direction='up') }}" method="post">
+                            <button type="submit" class="btn btn-ghost btn-sm" title="Subir">▲</button>
+                        </form>
+                        <form action="{{ url_for('move_content', content_id=item.id, direction='down') }}" method="post">
+                            <button type="submit" class="btn btn-ghost btn-sm" title="Bajar">▼</button>
+                        </form>
+                        <form action="{{ url_for('toggle_content', content_id=item.id) }}" method="post">
+                            <button type="submit" class="btn btn-ghost btn-sm"
+                                    title="{{ 'Deshabilitar' if item.enabled else 'Habilitar' }}">
+                                {{ '👁' if item.enabled else '👁‍🗨' }}
+                            </button>
+                        </form>
+                        <a href="{{ url_for('edit_content', content_id=item.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+                        <form action="{{ url_for('delete_content', content_id=item.id) }}" method="post"
+                              onsubmit="return confirm('¿Eliminar este video?')">
+                            <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+                        </form>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         {% else %}
             <div class="empty-state">
-                <h2>No hay contenido</h2>
-                <p>Agrega videos, PDFs e imágenes para el kiosk del museo.</p>
+                <h2>Sin videos</h2>
+                <p>Agrega videos para la playlist del kiosk.</p>
             </div>
         {% endif %}
     </div>
