@@ -615,9 +615,6 @@ class Renderer:
             zone_progress = min(1.0, max(0, self._zone_frames_left) / 45.0)
             if zone_progress > 0:
                 bar_alpha = int(min(255, 160 + 95 * zone_progress))
-                txt = self._font_overlay.render("◀", True, (*config.ACCENT_PRIMARY,))
-                txt.set_alpha(bar_alpha)
-                surface.blit(txt, (cx + 32, cy - txt.get_height() // 2))
                 # Thick progress bar with glow
                 bar_full_w = 120
                 bar_h = 10
@@ -642,9 +639,6 @@ class Renderer:
             zone_progress = min(1.0, max(0, self._zone_frames_right) / 45.0)
             if zone_progress > 0:
                 bar_alpha = int(min(255, 160 + 95 * zone_progress))
-                txt = self._font_overlay.render("▶", True, (*config.ACCENT_PRIMARY,))
-                txt.set_alpha(bar_alpha)
-                surface.blit(txt, (cx - 32 - txt.get_width(), cy - txt.get_height() // 2))
                 # Thick progress bar with glow
                 bar_full_w = 120
                 bar_h = 10
