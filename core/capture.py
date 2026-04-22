@@ -66,52 +66,47 @@ class CaptureThread:
         sys.stdout.flush()
 
     def _capture_loop(self):
-        """Main capture loop — runs in daemon thread."""
+        """Main capture loop — optimized for low latency."""
         import sys
         cap = None
         last_time = time.time()
         fps_counter = 0
-        fps_interval = 1.0  # Update FPS every second
+        fps_interval = 1.0
         self._force_reconnect = False
 
         while self._running:
-            # Force reconnect if requested (e.g., when switching cameras)
             if self._force_reconnect and cap is not None:
-                print(f"[DEBUG] Reconnecting to camera {self.camera_index}...")
-                sys.stdout.flush()
                 cap.release()
                 cap = None
                 self._force_reconnect = False
                 
-            # Try to connect/reconnect
             if cap is None or not cap.isOpened():
                 self._connected = False
                 cap = self._try_connect()
                 if cap is None:
-                    time.sleep(1.0)  # Wait before retry
+                    time.sleep(1.0)
                     continue
 
+            # Performance trick: grab many frames to ensure we get the absolute latest one
+            # and don't lag behind the buffer.
+            for _ in range(2):
+                cap.grab()
+            
             ret, frame = cap.read()
             if not ret or frame is None:
-                # Lost connection — retry
-                print("[DEBUG] Lost camera frame, reconnecting...")
-                sys.stdout.flush()
                 self._connected = False
                 cap.release()
                 cap = None
                 time.sleep(0.5)
                 continue
 
-            # Store frame
             with self._lock:
                 self._frame = frame
 
-            # FPS calculation
             fps_counter += 1
             now = time.time()
-            elapsed = now - last_time
-            if elapsed >= fps_interval:
-                self._fps = fps_counter / elapsed
+            if now - last_time >= fps_interval:
+                self._fps = fps_counter / (now - last_time)
                 fps_counter = 0
                 last_time = now
 

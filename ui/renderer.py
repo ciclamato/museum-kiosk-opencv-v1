@@ -357,15 +357,14 @@ class Renderer:
 
         elif self._scene == Scene.VIEWER:
             if self._experience_mode == config.MODE_PERPETUAL and self._playlist:
-                # Simplified gestures for Perpetual Mode
+                # Simplified gestures for Perpetual Mode (Speed & Robustness)
                 if event.type == "SWIPE_LEFT":
                     self._cycle_playlist(1)
                 elif event.type == "SWIPE_RIGHT":
                     self._cycle_playlist(-1)
                 elif event.type == "PINCH":
                     self._viewer.handle_gesture(event.type) # Toggle zoom
-                # In perpetual mode, we might want to disable FIST (back) 
-                # or keep it as a way to return to screensaver if requested.
+                # Removed FIST and OPEN_PALM to avoid accidental context switching
             else:
                 # Normal menu navigation
                 self._viewer.handle_gesture(event.type)
