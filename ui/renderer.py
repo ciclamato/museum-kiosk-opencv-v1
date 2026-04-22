@@ -6,6 +6,8 @@ background → content → hand overlay → HUD → screensaver.
 import sys
 import os
 import json
+import time
+import math
 
 import pygame
 import cv2
@@ -243,9 +245,12 @@ class Renderer:
                 landmarks, handedness = self._tracker.process(frame)
                 gesture = self._gesture_engine.update(landmarks)
 
-            if self._scene == Scene.VIEWER or (self._scene == Scene.HOME and self._tracker.hand_detected):
+            if self._scene == Scene.HOME and self._tracker.hand_detected:
                 self._screensaver.notify_menu_activity()
-                self._perpetual_timer = 0.0 # Reset auto-advance on any activity
+                self._perpetual_timer = 0.0
+            
+            if self._scene == Scene.VIEWER:
+                self._screensaver.notify_menu_activity() # Also keep awake while viewing
 
             if self._screensaver.is_active and self._scene != Scene.VIEWER:
                 self._scene = Scene.SCREENSAVER
@@ -278,12 +283,29 @@ class Renderer:
             elif self._scene == Scene.VIEWER:
                 self._viewer.update(dt, cursor, (self._sw, self._sh))
                 
-                # Perpetual Auto-Advance: Only advance if NOT playing a video or if video is paused
+                # Perpetual Mode Logic
                 if self._experience_mode == config.MODE_PERPETUAL:
-                    is_video_playing = (self._type == "video" and self._viewer._video_playing) if hasattr(self, '_type') else False
-                    # Actually, better to check with the viewer directly
-                    is_content_busy = self._viewer._type == "video" and self._viewer._video_playing
+                    # 1. Zone-based simplified swiping (Fast & Robust)
+                    if cursor:
+                        if cursor[0] < 0.18: # Left Zone
+                            self._zone_frames_left = getattr(self, '_zone_frames_left', 0) + 1
+                            self._zone_frames_right = 0
+                        elif cursor[0] > 0.82: # Right Zone
+                            self._zone_frames_right = getattr(self, '_zone_frames_right', 0) + 1
+                            self._zone_frames_left = 0
+                        else:
+                            self._zone_frames_left = 0
+                            self._zone_frames_right = 0
+                            
+                        if getattr(self, '_zone_frames_left', 0) > 10:
+                            self._cycle_playlist(-1)
+                            self._zone_frames_left = -20 # Cooldown
+                        elif getattr(self, '_zone_frames_right', 0) > 10:
+                            self._cycle_playlist(1)
+                            self._zone_frames_right = -20 # Cooldown
                     
+                    # 2. Perpetual Auto-Advance
+                    is_content_busy = self._viewer._type == "video" and self._viewer._video_playing
                     if not self._tracker.hand_detected and not is_content_busy:
                         self._perpetual_timer += dt
                     else:
@@ -323,6 +345,8 @@ class Renderer:
                 self._hud.draw(self._screen)
             elif self._scene == Scene.VIEWER:
                 self._viewer.draw(self._screen)
+                if self._experience_mode == config.MODE_PERPETUAL:
+                    self._draw_perpetual_hints(self._screen)
                 self._hand_overlay.draw(self._screen)
                 self._hud.draw(self._screen)
 
@@ -476,6 +500,20 @@ class Renderer:
         # Notify components of resize
         self._home.init(self._sw, self._sh)
         self._screensaver.init(self._sw, self._sh)
+
+    def _draw_perpetual_hints(self, surface):
+        """Draw side arrows to suggest swiping in perpetual mode."""
+        sw, sh = surface.get_size()
+        alpha = int(100 + 50 * math.sin(time.time() * 4))
+        color = (*config.ACCENT_PRIMARY[:3], alpha)
+        
+        # Left arrow
+        lx, ly = 40, sh // 2
+        pygame.draw.polygon(surface, color, [(lx+20, ly-30), (lx, ly), (lx+20, ly+30)])
+        
+        # Right arrow
+        rx, ry = sw - 40, sh // 2
+        pygame.draw.polygon(surface, color, [(rx-20, ry-30), (rx, ry), (rx-20, ry+30)])
 
     def _cleanup(self):
         """Clean up all resources."""

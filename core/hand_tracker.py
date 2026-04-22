@@ -56,8 +56,8 @@ class HandTracker:
             base_options=base_options,
             running_mode=vision.RunningMode.VIDEO, # Using VIDEO mode for better temporal consistency
             num_hands=max_hands,
-            min_hand_detection_confidence=min_detection_conf,
-            min_hand_presence_confidence=min_detection_conf,
+            min_hand_detection_confidence=0.4,
+            min_hand_presence_confidence=0.4,
             min_tracking_confidence=min_tracking_conf,
         )
         self._detector = vision.HandLandmarker.create_from_options(options)
