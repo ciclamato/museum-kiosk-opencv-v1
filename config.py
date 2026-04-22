@@ -84,10 +84,16 @@ SCREENSAVER_VIDEO_MAX_FPS = 24    # Limit attract video playback on Raspberry Pi
 PDF_RENDER_DPI = 96          # PDF render quality tuned for Raspberry Pi 4
 VIDEO_MAX_FPS = 24           # Cap content video playback FPS
 VIDEO_AUDIO_ENABLED = True   # Play audio from video files
+PERPETUAL_AUTO_ADVANCE_S = 25 # Idle time before next item in perpetual mode
 
 # ─── i18n ─────────────────────────────────────────────────────────────────────
 DEFAULT_LANGUAGE = "es"      # Spanish first
 SUPPORTED_LANGUAGES = ["es", "en"]
+
+# ─── Experience Modes ─────────────────────────────────────────────────────────
+MODE_MENU = "menu"           # Interactive menu with categories
+MODE_PERPETUAL = "perpetual" # Continuous slideshow/video loop
+DEFAULT_MODE = MODE_MENU
 
 # ─── Admin Panel ──────────────────────────────────────────────────────────────
 ADMIN_HOST = "0.0.0.0"

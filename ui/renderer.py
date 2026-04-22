@@ -68,9 +68,10 @@ class Renderer:
         self._screensaver = None
         self._tutorial = None
         self._first_launch = False
-        self._experience_mode = "menu"
-        self._video_playlist = []
+        self._experience_mode = config.DEFAULT_MODE
+        self._playlist = []
         self._playlist_index = 0
+        self._perpetual_timer = 0.0
 
     def run(self):
         """Main entry point — initializes everything and runs the game loop."""
@@ -208,7 +209,7 @@ class Renderer:
         self._screensaver.init(self._sw, self._sh)
         self._tutorial = GestureTutorial()
         self._tutorial.init_fonts()
-        self._load_video_playlist()
+        self._load_playlist()
 
     def _main_loop(self):
         """Core game loop: events → update → draw."""
@@ -244,6 +245,7 @@ class Renderer:
 
             if self._scene == Scene.VIEWER or (self._scene == Scene.HOME and self._tracker.hand_detected):
                 self._screensaver.notify_menu_activity()
+                self._perpetual_timer = 0.0 # Reset auto-advance on any activity
 
             if self._screensaver.is_active and self._scene != Scene.VIEWER:
                 self._scene = Scene.SCREENSAVER
@@ -270,10 +272,20 @@ class Renderer:
                     self._handle_home_selection(pending)
             elif self._scene == Scene.VIEWER:
                 self._viewer.update(dt, cursor, (self._sw, self._sh))
+                
+                # Perpetual Auto-Advance
+                if self._experience_mode == config.MODE_PERPETUAL:
+                    # Increment timer if idle
+                    if not self._tracker.hand_detected:
+                        self._perpetual_timer += dt
+                    
+                    if self._perpetual_timer >= config.PERPETUAL_AUTO_ADVANCE_S:
+                        self._cycle_playlist(1)
+                
                 if self._viewer.should_close:
-                    if self._experience_mode == "perpetual" and self._video_playlist:
+                    if self._experience_mode == config.MODE_PERPETUAL and self._playlist:
                         self._viewer.close()
-                        self._open_playlist_item(self._playlist_index)
+                        self._open_playlist_item(self._playlist_index + 1)
                     else:
                         self._viewer.close()
                         self._scene = Scene.HOME
@@ -344,14 +356,18 @@ class Renderer:
                 self._home.scroll(-1)
 
         elif self._scene == Scene.VIEWER:
-            if self._experience_mode == "perpetual" and self._video_playlist:
+            if self._experience_mode == config.MODE_PERPETUAL and self._playlist:
+                # Simplified gestures for Perpetual Mode
                 if event.type == "SWIPE_LEFT":
                     self._cycle_playlist(1)
                 elif event.type == "SWIPE_RIGHT":
                     self._cycle_playlist(-1)
-                elif event.type == "OPEN_PALM":
-                    self._viewer.handle_gesture(event.type)
+                elif event.type == "PINCH":
+                    self._viewer.handle_gesture(event.type) # Toggle zoom
+                # In perpetual mode, we might want to disable FIST (back) 
+                # or keep it as a way to return to screensaver if requested.
             else:
+                # Normal menu navigation
                 self._viewer.handle_gesture(event.type)
             
         elif self._scene == Scene.TUTORIAL:
@@ -429,6 +445,7 @@ class Renderer:
                 print(f"[INFO] UI requested camera index change to {idx}")
         else:
             self.play_ui_sound("chime")
+            self._viewer.is_perpetual = False
             if self._viewer.open(content):
                 self._scene = Scene.VIEWER
 
@@ -462,21 +479,22 @@ class Renderer:
         pygame.quit()
 
     def _load_runtime_settings(self):
-        self._experience_mode = "menu"
+        self._experience_mode = config.DEFAULT_MODE
         if not os.path.exists(config.MANIFEST_PATH):
             return
         try:
             with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             settings = payload.get("settings") or {}
-            mode = (settings.get("experience_mode") or "menu").strip()
-            if mode in {"menu", "perpetual"}:
+            mode = (settings.get("experience_mode") or config.DEFAULT_MODE).strip()
+            if mode in {config.MODE_MENU, config.MODE_PERPETUAL}:
                 self._experience_mode = mode
         except Exception:
             pass
 
-    def _load_video_playlist(self):
-        self._video_playlist = []
+    def _load_playlist(self):
+        """Loads all enabled content in order for perpetual mode."""
+        self._playlist = []
         self._playlist_index = 0
         if not os.path.exists(config.MANIFEST_PATH):
             return
@@ -484,34 +502,40 @@ class Renderer:
             with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             raw_content = payload.get("content", [])
-            videos = [item for item in raw_content if item.get("enabled", True) and item.get("type") == "video"]
-            videos.sort(key=lambda item: (
+            # Include all media types for perpetual mode
+            media = [item for item in raw_content if item.get("enabled", True) 
+                     and item.get("type") in {"video", "image", "pdf"}]
+            
+            # Sort by category and then by sort_order
+            media.sort(key=lambda item: (
                 (item.get("category") or "General").lower(),
                 int(item.get("sort_order", 0) or 0),
                 item.get("title", "").lower(),
             ))
-            self._video_playlist = videos
+            self._playlist = media
         except Exception:
-            self._video_playlist = []
+            self._playlist = []
 
     def _enter_primary_experience(self):
-        if self._experience_mode == "perpetual" and self._video_playlist:
+        if self._experience_mode == config.MODE_PERPETUAL and self._playlist:
             self._open_playlist_item(self._playlist_index)
         else:
             self._scene = Scene.HOME
 
     def _open_playlist_item(self, index):
-        if not self._video_playlist:
+        if not self._playlist:
             self._scene = Scene.HOME
             return
-        self._playlist_index = index % len(self._video_playlist)
-        item = self._video_playlist[self._playlist_index]
+        self._playlist_index = index % len(self._playlist)
+        item = self._playlist[self._playlist_index]
+        self._viewer.is_perpetual = (self._experience_mode == config.MODE_PERPETUAL)
         if self._viewer.open(item):
             self._scene = Scene.VIEWER
 
     def _cycle_playlist(self, direction):
-        if not self._video_playlist:
+        if not self._playlist:
             return
+        self._perpetual_timer = 0.0
         self.play_ui_sound("whoosh")
         self._viewer.close()
         self._open_playlist_item(self._playlist_index + direction)

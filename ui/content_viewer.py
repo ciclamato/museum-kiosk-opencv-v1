@@ -71,7 +71,8 @@ class ContentViewer:
         self._initialized = False
         self._should_close = False
 
-        # Audio
+        # Perpetual mode
+        self.is_perpetual = False
         self._audio_initialized = False
 
     def init_fonts(self):
@@ -92,6 +93,7 @@ class ContentViewer:
         self._type = content_item.get("type", "image")
         self._active = True
         self._should_close = False
+        self.is_perpetual = False  # Reset each time, will be set by renderer if needed
         self._transition_alpha = 0
         self._video_scaled_cache = None
         self._video_scaled_cache_size = None
@@ -159,7 +161,8 @@ class ContentViewer:
             return
 
         if gesture_type == "FIST":
-            self._should_close = True
+            if not self.is_perpetual:
+                self._should_close = True
 
         elif gesture_type == "OPEN_PALM":
             if self._type == "video":
