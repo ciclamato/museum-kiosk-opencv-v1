@@ -233,10 +233,6 @@ class ContentViewer:
         surface.fill(config.BG_PRIMARY)
 
         target_surface = surface
-        content_surface = None
-        if self._transition_alpha < 255:
-            content_surface = pygame.Surface((sw, sh), pygame.SRCALPHA)
-            target_surface = content_surface
 
         if self._type == "video":
             self._draw_video(target_surface, sw, sh)
@@ -247,10 +243,6 @@ class ContentViewer:
 
         self._draw_title_bar(target_surface, sw, sh)
         self._draw_hints(target_surface, sw, sh)
-
-        if content_surface is not None:
-            content_surface.set_alpha(self._transition_alpha)
-            surface.blit(content_surface, (0, 0))
 
     # ─── Video ────────────────────────────────────────────────────────
 
@@ -296,9 +288,13 @@ class ContentViewer:
 
         ret, frame = self._video_cap.read()
         if not ret:
-            # Video ended — loop
+            if self.is_perpetual:
+                self._should_close = True
+                return
+            # Video ended — loop immediately
             self._video_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            return
+            ret, frame = self._video_cap.read()
+            if not ret: return
 
         self._video_last_frame_time = now
 

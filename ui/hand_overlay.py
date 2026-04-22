@@ -21,11 +21,12 @@ class HandOverlay:
 
     def update(self, landmarks, gesture, screen_w, screen_h, dt=0):
         self._gesture = gesture
-        self._landmarks = landmarks
         self._screen_w = screen_w
         self._screen_h = screen_h
         self._pulse_time += dt
-        self._display_landmarks = self._smooth_landmarks(landmarks)
+        
+        # Smooth landmarks even when skipping frames
+        self._display_landmarks = self._smooth_landmarks(landmarks, dt)
 
     def draw(self, surface):
         if self._display_landmarks is None and self.trail.point_count < 2:
@@ -83,22 +84,19 @@ class HandOverlay:
     def _to_screen(self, landmark):
         return (int(landmark[0] * self._screen_w), int(landmark[1] * self._screen_h))
 
-    def _smooth_landmarks(self, landmarks):
+    def _smooth_landmarks(self, landmarks, dt):
         if landmarks is None:
-            self._display_landmarks = None
             return None
 
         if self._display_landmarks is None or len(self._display_landmarks) != len(landmarks):
             return [tuple(lm) for lm in landmarks]
 
-        alpha = config.HAND_SMOOTHING
+        alpha = 0.5
         smoothed = []
         for prev, curr in zip(self._display_landmarks, landmarks):
             smoothed.append((
                 prev[0] + (curr[0] - prev[0]) * alpha,
                 prev[1] + (curr[1] - prev[1]) * alpha,
-                prev[2] + (curr[2] - prev[2]) * alpha,
-            ))
         return smoothed
 
     def _get_glow_surface(self, color, glow_radius):

@@ -273,11 +273,16 @@ class Renderer:
             elif self._scene == Scene.VIEWER:
                 self._viewer.update(dt, cursor, (self._sw, self._sh))
                 
-                # Perpetual Auto-Advance
+                # Perpetual Auto-Advance: Only advance if NOT playing a video or if video is paused
                 if self._experience_mode == config.MODE_PERPETUAL:
-                    # Increment timer if idle
-                    if not self._tracker.hand_detected:
+                    is_video_playing = (self._type == "video" and self._viewer._video_playing) if hasattr(self, '_type') else False
+                    # Actually, better to check with the viewer directly
+                    is_content_busy = self._viewer._type == "video" and self._viewer._video_playing
+                    
+                    if not self._tracker.hand_detected and not is_content_busy:
                         self._perpetual_timer += dt
+                    else:
+                        self._perpetual_timer = 0.0
                     
                     if self._perpetual_timer >= config.PERPETUAL_AUTO_ADVANCE_S:
                         self._cycle_playlist(1)

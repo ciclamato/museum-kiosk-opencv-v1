@@ -193,12 +193,14 @@ class Screensaver:
 
         if self._video_surface is not None:
             vw, vh = self._video_surface.get_size()
-            scale = max(sw / max(1, vw), sh / max(1, vh))
-            scaled_size = (max(1, int(vw * scale)), max(1, int(vh * scale)))
-            frame = pygame.transform.scale(self._video_surface, scaled_size)
-            x = (sw - scaled_size[0]) // 2
-            y = (sh - scaled_size[1]) // 2
-            surface.blit(frame, (x, y))
+            # Cache the scale/size to avoid re-calculation
+            if not hasattr(self, '_video_scaled_size') or self._video_scaled_size[2] != (vw, vh):
+                scale = max(sw / max(1, vw), sh / max(1, vh))
+                self._video_scaled_size = (int(vw * scale), int(vh * scale), (vw, vh))
+            
+            new_w, new_h, _ = self._video_scaled_size
+            frame = pygame.transform.scale(self._video_surface, (new_w, new_h))
+            surface.blit(frame, ((sw - new_w) // 2, (sh - new_h) // 2))
 
         if self._background_overlay is None or self._background_overlay_size != (sw, sh):
             veil = pygame.Surface((sw, sh), pygame.SRCALPHA)
