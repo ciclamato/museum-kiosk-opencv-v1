@@ -80,6 +80,13 @@ class Renderer:
         self._init_pygame()
         self._init_audio()
         self._init_subsystems()
+        
+        # Bypass screensaver if in Perpetual Mode
+        if self._experience_mode == config.MODE_PERPETUAL:
+            self._enter_primary_experience()
+        else:
+            self._scene = Scene.SCREENSAVER
+
         self._running = True
         self._main_loop()
         self._cleanup()
@@ -252,17 +259,20 @@ class Renderer:
             if self._scene == Scene.VIEWER:
                 self._screensaver.notify_menu_activity() # Also keep awake while viewing
 
-            if self._screensaver.is_active and self._scene != Scene.VIEWER:
-                self._scene = Scene.SCREENSAVER
+            # Disable Screensaver auto-activation in Perpetual Mode
+            if self._experience_mode != config.MODE_PERPETUAL:
+                if self._screensaver.is_active and self._scene != Scene.VIEWER:
+                    self._scene = Scene.SCREENSAVER
 
-            if self._scene == Scene.SCREENSAVER and self._screensaver.menu_requested:
-                # Hot-reload settings and playlist on exit to reflect Admin changes immediately
-                self._load_runtime_settings()
-                self._load_playlist()
-                self._home.reload_content() # Also refresh menu just in case
-                
-                self._screensaver.deactivate()
-                self._enter_primary_experience()
+                if self._scene == Scene.SCREENSAVER and self._screensaver.menu_requested:
+                    # Hot-reload settings and playlist on exit to reflect Admin changes immediately
+                    self._load_runtime_settings()
+                    self._load_playlist()
+                    self._home.reload_content() # Also refresh menu just in case
+                    
+                    self._screensaver.deactivate()
+                    self._enter_primary_experience()
+
 
             # Update current scene
             # Use mouse as backup if no hand is detected
@@ -566,10 +576,14 @@ class Renderer:
             with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             raw_content = payload.get("content", [])
-            # Include all media types for perpetual mode (Case-Insensitive)
-            valid_types = {"video", "image", "pdf", "img"}
-            media = [item for item in raw_content if item.get("enabled", True) 
-                     and str(item.get("type", "")).lower() in valid_types]
+            # Include all media types for perpetual mode (Ultra-Permissive)
+            media = []
+            for item in raw_content:
+                if not item.get("enabled", True): continue
+                t = str(item.get("type", "")).lower()
+                if t in {"video", "image", "pdf", "img", "media"} or not t:
+                    media.append(item)
+
             
             # Sort by category and then by sort_order
             media.sort(key=lambda item: (
