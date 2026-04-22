@@ -53,10 +53,9 @@ class HandOverlay:
             p1 = self._to_screen(self._display_landmarks[start_idx])
             p2 = self._to_screen(self._display_landmarks[end_idx])
 
-            pygame.draw.line(surface, (*glow_color, int(base_alpha * 0.12)), p1, p2, 8)
-            pygame.draw.line(surface, (*config.ACCENT_PRIMARY[:3], int(base_alpha * 0.28)), p1, p2, 4)
-            pygame.draw.line(surface, (*config.ACCENT_PRIMARY[:3], int(base_alpha * 0.55)), p1, p2, 2)
-            pygame.draw.line(surface, (255, 255, 255, int(base_alpha * 0.85)), p1, p2, 1)
+            # Draw single thicker line for RPi optimization (instead of 4 layers)
+            pygame.draw.line(surface, (*config.ACCENT_PRIMARY[:3], int(base_alpha * 0.4)), p1, p2, 4)
+            pygame.draw.line(surface, (255, 255, 255, int(base_alpha * 0.8)), p1, p2, 1)
 
         for i, lm in enumerate(self._display_landmarks):
             pos = self._to_screen(lm)

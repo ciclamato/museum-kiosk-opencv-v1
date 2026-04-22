@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Museum Kiosk
+Exec=/bin/bash /home/pi/museum-kiosk-opencv-v1/launch_kiosk_pi.sh
+WorkingDir=/home/pi/museum-kiosk-opencv-v1
+Terminal=true
+X-GNOME-Autostart-enabled=true
+Comment=Launch Museum Kiosk on startup

@@ -13,19 +13,19 @@ FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
 CAMERA_INDEX = 0
-CAMERA_WIDTH = 480          # Lower capture resolution for Raspberry Pi 4
-CAMERA_HEIGHT = 360
+CAMERA_WIDTH = 320          # 320x240 is the sweet spot for Pi 4 performance
+CAMERA_HEIGHT = 240
 
 # ─── MediaPipe Inference ─────────────────────────────────────────────────────
-INFERENCE_WIDTH = 256       # Downscale for hand detection
-INFERENCE_HEIGHT = 192
+INFERENCE_WIDTH = 192       # Tiny inference for maximum speed
+INFERENCE_HEIGHT = 144
 MAX_HANDS = 1
-MIN_DETECTION_CONFIDENCE = 0.7
-MIN_TRACKING_CONFIDENCE = 0.5
-FRAME_SKIP = 2             # Better hand responsiveness while keeping Pi 4 load reasonable
+MIN_DETECTION_CONFIDENCE = 0.6
+MIN_TRACKING_CONFIDENCE = 0.4
+FRAME_SKIP = 2             # Process MediaPipe every 2nd frame
 
 # ─── Display ──────────────────────────────────────────────────────────────────
-DISPLAY_FPS = 20
+DISPLAY_FPS = 30           # Smooth enough for interactive feel
 FULLSCREEN = True           # Set False for dev/windowed mode
 WINDOW_WIDTH = 1280         # Used only in windowed mode
 WINDOW_HEIGHT = 720
@@ -38,7 +38,7 @@ GESTURE_COOLDOWN_MS = 900   # Debounce repeated gesture events (ms)
 POINT_THRESHOLD = 0.03      # Min movement to register pointer movement
 
 # ─── Phantom Trail ────────────────────────────────────────────────────────────
-TRAIL_MAX_POINTS = 28       # Shorter trail for lower fill cost on Raspberry Pi 4
+TRAIL_MAX_POINTS = 12       # Very short trail to save blending CPU
 TRAIL_FADE_RATE = 0.7       # Faster fade keeps the trail light to render
 TRAIL_BASE_WIDTH = 4        # Thinner trail
 TRAIL_MIN_WIDTH = 1
