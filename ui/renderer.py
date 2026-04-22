@@ -251,6 +251,11 @@ class Renderer:
                 self._scene = Scene.SCREENSAVER
 
             if self._scene == Scene.SCREENSAVER and self._screensaver.menu_requested:
+                # Hot-reload settings and playlist on exit to reflect Admin changes immediately
+                self._load_runtime_settings()
+                self._load_playlist()
+                self._home.reload_content() # Also refresh menu just in case
+                
                 self._screensaver.deactivate()
                 self._enter_primary_experience()
 
@@ -506,9 +511,10 @@ class Renderer:
             with open(config.MANIFEST_PATH, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
             raw_content = payload.get("content", [])
-            # Include all media types for perpetual mode
+            # Include all media types for perpetual mode (Case-Insensitive)
+            valid_types = {"video", "image", "pdf", "img"}
             media = [item for item in raw_content if item.get("enabled", True) 
-                     and item.get("type") in {"video", "image", "pdf"}]
+                     and str(item.get("type", "")).lower() in valid_types]
             
             # Sort by category and then by sort_order
             media.sort(key=lambda item: (
