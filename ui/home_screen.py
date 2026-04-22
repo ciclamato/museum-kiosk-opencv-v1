@@ -50,6 +50,7 @@ class HomeScreen:
         self.CHARGE_DECAY = 0.05
         self._bg_surface = None
         self._bg_size = None
+        self._card_cache = {}  # Cache for card backgrounds
 
     def init(self, sw, sh):
         self._sw, self._sh = sw, sh
@@ -102,6 +103,7 @@ class HomeScreen:
             if os.path.exists(thumb_path):
                 try:
                     image = pygame.image.load(thumb_path).convert_alpha()
+                    # Pre-scale all sizes and use convert() for faster blitting if possible
                     content_item.thumb = pygame.transform.smoothscale(image, (520, 292))
                     content_item.thumb_large = pygame.transform.smoothscale(image, (504, 216))
                     content_item.thumb_small = pygame.transform.smoothscale(image, (304, 132))
@@ -110,6 +112,8 @@ class HomeScreen:
                     content_item.thumb_large = None
                     content_item.thumb_small = None
             self._items.append(content_item)
+        
+        self._card_cache = {} # Clear cache on reload
 
         categories = sorted({item.category for item in self._items})
         self._category_keys = ["__all__"] + categories
@@ -303,36 +307,45 @@ class HomeScreen:
                 continue
 
             alpha = max(80, int(255 - abs(distance) * 110))
-            card = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-            pygame.draw.rect(card, (*config.BG_SECONDARY, alpha), card.get_rect(), border_radius=18)
-            if is_active:
-                pygame.draw.rect(card, (*config.ACCENT_PRIMARY, 90), card.get_rect(), width=1, border_radius=18)
+            
+            # Cache card background
+            cache_key = (width, height, alpha, is_active)
+            card = self._card_cache.get(cache_key)
+            if card is None:
+                card = pygame.Surface((width, height), pygame.SRCALPHA)
+                pygame.draw.rect(card, (*config.BG_SECONDARY, alpha), card.get_rect(), border_radius=18)
+                if is_active:
+                    pygame.draw.rect(card, (*config.ACCENT_PRIMARY, 90), card.get_rect(), width=1, border_radius=18)
+                self._card_cache[cache_key] = card
+            
+            # Copy cached card to avoid modifying the original
+            card_to_draw = card.copy()
 
             media_rect = pygame.Rect(22, 22, rect.width - 44, int(rect.height * 0.5))
-            pygame.draw.rect(card, config.BG_TERTIARY, media_rect, border_radius=14)
+            pygame.draw.rect(card_to_draw, config.BG_TERTIARY, media_rect, border_radius=14)
             if item.thumb:
                 thumb = item.thumb_large if is_active else item.thumb_small
-                card.blit(thumb, media_rect.topleft)
+                card_to_draw.blit(thumb, media_rect.topleft)
             else:
                 type_label = self._font_card.render(item.data.get("type", "contenido").upper(), True, config.TEXT_SECONDARY)
-                card.blit(type_label, ((rect.width - type_label.get_width()) // 2, media_rect.centery - 20))
+                card_to_draw.blit(type_label, ((rect.width - type_label.get_width()) // 2, media_rect.centery - 20))
 
             title = self._font_card.render(item.title, True, config.TEXT_PRIMARY)
-            card.blit(title, (22, media_rect.bottom + 16))
+            card_to_draw.blit(title, (22, media_rect.bottom + 16))
 
             category = self._font_small.render(item.category.upper(), True, config.TEXT_DIM)
-            card.blit(category, (22, media_rect.bottom + 52))
+            card_to_draw.blit(category, (22, media_rect.bottom + 52))
 
-            desc_text = item.data.get("description") or "Contenido listo para abrir manteniendo la mano sobre la pieza."
+            desc_text = item.data.get("description") or "Contenido listo para abrir..."
             desc = self._font_body.render(self._truncate(desc_text, 38), True, config.TEXT_SECONDARY)
-            card.blit(desc, (22, media_rect.bottom + 82))
+            card_to_draw.blit(desc, (22, media_rect.bottom + 82))
 
             if is_active:
                 progress_w = rect.width - 44
-                pygame.draw.rect(card, (42, 49, 68), (22, rect.height - 28, progress_w, 6), border_radius=3)
-                pygame.draw.rect(card, config.ACCENT_PRIMARY, (22, rect.height - 28, int(progress_w * item.charge), 6), border_radius=3)
+                pygame.draw.rect(card_to_draw, (42, 49, 68), (22, rect.height - 28, progress_w, 6), border_radius=3)
+                pygame.draw.rect(card_to_draw, config.ACCENT_PRIMARY, (22, rect.height - 28, int(progress_w * item.charge), 6), border_radius=3)
 
-            surface.blit(card, rect.topleft)
+            surface.blit(card_to_draw, rect.topleft)
 
     def _draw_footer(self, surface, sw, sh):
         current = min(self.target_idx + 1, len(self._filtered_items))

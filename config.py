@@ -13,16 +13,16 @@ FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 # ─── Camera ───────────────────────────────────────────────────────────────────
 CAMERA_INDEX = 0
-CAMERA_WIDTH = 320          # 320x240 is the sweet spot for Pi 4 performance
-CAMERA_HEIGHT = 240
+CAMERA_WIDTH = 256          # Ultra-low resolution for maximum frame rate
+CAMERA_HEIGHT = 192
 
 # ─── MediaPipe Inference ─────────────────────────────────────────────────────
-INFERENCE_WIDTH = 192       # Tiny inference for maximum speed
-INFERENCE_HEIGHT = 144
+INFERENCE_WIDTH = 128       # Tiny inference for maximum speed
+INFERENCE_HEIGHT = 96
 MAX_HANDS = 1
-MIN_DETECTION_CONFIDENCE = 0.6
-MIN_TRACKING_CONFIDENCE = 0.4
-FRAME_SKIP = 2             # Process MediaPipe every 2nd frame
+MIN_DETECTION_CONFIDENCE = 0.5
+MIN_TRACKING_CONFIDENCE = 0.3
+FRAME_SKIP = 3             # Process MediaPipe every 3rd frame (10 FPS tracking @ 30 FPS loop)
 
 # ─── Display ──────────────────────────────────────────────────────────────────
 DISPLAY_FPS = 30           # Smooth enough for interactive feel
@@ -81,7 +81,7 @@ SCREENSAVER_PRESENCE_HOLD_S = 4.0 # Presence time on screensaver -> menu
 SCREENSAVER_VIDEO_MAX_FPS = 24    # Limit attract video playback on Raspberry Pi 4
 
 # ─── Content Viewer ──────────────────────────────────────────────────────────
-PDF_RENDER_DPI = 96          # PDF render quality tuned for Raspberry Pi 4
+PDF_RENDER_DPI = 72          # Faster page turns
 VIDEO_MAX_FPS = 24           # Cap content video playback FPS
 VIDEO_AUDIO_ENABLED = True   # Play audio from video files
 PERPETUAL_AUTO_ADVANCE_S = 25 # Idle time before next item in perpetual mode

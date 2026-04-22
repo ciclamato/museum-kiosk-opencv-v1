@@ -21,6 +21,7 @@ class HUD:
         self._font_large = None
         self._gesture_display_time = 0
         self._pulse_phase = 0
+        self._pill_cache = {}  # Cache for UI background elements
 
     def init_fonts(self):
         try:
@@ -78,9 +79,14 @@ class HUD:
         pill_x = (sw - pill_w) // 2
         pill_y = y - 10
 
-        pill = pygame.Surface((pill_w, pill_h), pygame.SRCALPHA)
-        pygame.draw.rect(pill, (*config.BG_SECONDARY, 180), (0, 0, pill_w, pill_h), border_radius=pill_h // 2)
-        pygame.draw.rect(pill, (*config.ACCENT_PRIMARY, 60), (0, 0, pill_w, pill_h), 2, border_radius=pill_h // 2)
+        cache_key = ("onboarding", pill_w, pill_h)
+        pill = self._pill_cache.get(cache_key)
+        if pill is None:
+            pill = pygame.Surface((pill_w, pill_h), pygame.SRCALPHA)
+            pygame.draw.rect(pill, (*config.BG_SECONDARY, 180), (0, 0, pill_w, pill_h), border_radius=pill_h // 2)
+            pygame.draw.rect(pill, (*config.ACCENT_PRIMARY, 60), (0, 0, pill_w, pill_h), 2, border_radius=pill_h // 2)
+            self._pill_cache[cache_key] = pill
+
         surface.blit(pill, (pill_x, pill_y))
         surface.blit(text_surf, (x, y))
 
@@ -119,8 +125,13 @@ class HUD:
         pill_x = (sw - pill_w) // 2
         pill_y = y - 7
 
-        pill = pygame.Surface((pill_w, pill_h), pygame.SRCALPHA)
-        pygame.draw.rect(pill, (0, 0, 0, min(alpha, 120)), (0, 0, pill_w, pill_h), border_radius=pill_h // 2)
+        cache_key = ("gesture", pill_w, pill_h, alpha // 10) # Quantize alpha for caching
+        pill = self._pill_cache.get(cache_key)
+        if pill is None:
+            pill = pygame.Surface((pill_w, pill_h), pygame.SRCALPHA)
+            pygame.draw.rect(pill, (0, 0, 0, min(alpha, 120)), (0, 0, pill_w, pill_h), border_radius=pill_h // 2)
+            self._pill_cache[cache_key] = pill
+
         surface.blit(pill, (pill_x, pill_y))
         surface.blit(text_surf, (x, y))
 
@@ -138,8 +149,13 @@ class HUD:
         bx = sw - badge_w - 15
         by = 15
 
-        badge = pygame.Surface((badge_w, badge_h), pygame.SRCALPHA)
-        pygame.draw.rect(badge, (255, 255, 255, 20), (0, 0, badge_w, badge_h), border_radius=badge_h // 2)
-        pygame.draw.rect(badge, (*config.ACCENT_PRIMARY, 40), (0, 0, badge_w, badge_h), 1, border_radius=badge_h // 2)
+        cache_key = ("lang", badge_w, badge_h)
+        badge = self._pill_cache.get(cache_key)
+        if badge is None:
+            badge = pygame.Surface((badge_w, badge_h), pygame.SRCALPHA)
+            pygame.draw.rect(badge, (255, 255, 255, 20), (0, 0, badge_w, badge_h), border_radius=badge_h // 2)
+            pygame.draw.rect(badge, (*config.ACCENT_PRIMARY, 40), (0, 0, badge_w, badge_h), 1, border_radius=badge_h // 2)
+            self._pill_cache[cache_key] = badge
+
         surface.blit(badge, (bx, by))
         surface.blit(text_surf, (bx + 8, by + 4))

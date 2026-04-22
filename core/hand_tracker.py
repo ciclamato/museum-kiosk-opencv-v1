@@ -79,8 +79,8 @@ class HandTracker:
         if self._frame_counter % self.frame_skip != 0:
             return self._last_landmarks, self._last_handedness
 
-        # Downscale for inference
-        small = cv2.resize(frame, (self.inference_width, self.inference_height))
+        # Downscale for inference (Nearest Neighbor is fastest for small target sizes)
+        small = cv2.resize(frame, (self.inference_width, self.inference_height), interpolation=cv2.INTER_NEAREST)
         # Flip horizontally for mirror effect (natural for kiosk users)
         small = cv2.flip(small, 1)
         rgb = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
