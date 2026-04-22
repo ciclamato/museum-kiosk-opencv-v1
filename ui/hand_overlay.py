@@ -97,6 +97,8 @@ class HandOverlay:
             smoothed.append((
                 prev[0] + (curr[0] - prev[0]) * alpha,
                 prev[1] + (curr[1] - prev[1]) * alpha,
+                prev[2] + (curr[2] - prev[2]) * alpha,
+            ))
         return smoothed
 
     def _get_glow_surface(self, color, glow_radius):
