@@ -502,9 +502,9 @@ class Renderer:
         self._screensaver.init(self._sw, self._sh)
 
     def _draw_perpetual_hints(self, surface):
-        """Draw side arrows to suggest swiping in perpetual mode."""
+        """Draw side arrows and text to suggest swiping in perpetual mode."""
         sw, sh = surface.get_size()
-        alpha = int(100 + 50 * math.sin(time.time() * 4))
+        alpha = int(120 + 60 * math.sin(time.time() * 3.5))
         color = (*config.ACCENT_PRIMARY[:3], alpha)
         
         # Left arrow
@@ -514,6 +514,21 @@ class Renderer:
         # Right arrow
         rx, ry = sw - 40, sh // 2
         pygame.draw.polygon(surface, color, [(rx-20, ry-30), (rx, ry), (rx-20, ry+30)])
+
+        # Labels
+        label_color = (*config.TEXT_SECONDARY, min(255, alpha + 60))
+        try:
+            font = pygame.font.SysFont("Segoe UI", 16)
+        except Exception:
+            font = pygame.font.SysFont("Arial", 16)
+            
+        # "Anterior" (Left side)
+        txt_l = font.render(i18n.t("gesture_swipe_right"), True, label_color)
+        surface.blit(txt_l, (lx - 10, ly + 40))
+        
+        # "Siguiente" (Right side)
+        txt_r = font.render(i18n.t("gesture_swipe_left"), True, label_color)
+        surface.blit(txt_r, (rx - txt_r.get_width() + 10, ry + 40))
 
     def _cleanup(self):
         """Clean up all resources."""
