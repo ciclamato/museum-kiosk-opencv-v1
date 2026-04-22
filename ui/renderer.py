@@ -347,8 +347,9 @@ class Renderer:
                 self._viewer.draw(self._screen)
                 if self._experience_mode == config.MODE_PERPETUAL:
                     self._draw_perpetual_hints(self._screen)
-                self._hand_overlay.draw(self._screen)
-                self._hud.draw(self._screen)
+                else:
+                    self._hand_overlay.draw(self._screen)
+                    self._hud.draw(self._screen)
 
             # Tutorial overlay (draws on top of current scene)
             if self._scene == Scene.TUTORIAL:
@@ -420,8 +421,9 @@ class Renderer:
                 self._tutorial.stop()
                 self._scene = Scene.HOME
             elif self._scene == Scene.VIEWER:
-                self._viewer.close()
-                self._scene = Scene.HOME
+                if self._experience_mode != config.MODE_PERPETUAL:
+                    self._viewer.close()
+                    self._scene = Scene.HOME
             else:
                 self._running = False
 

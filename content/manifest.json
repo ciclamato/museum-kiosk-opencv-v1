@@ -1,20 +1,41 @@
 {
   "content": [
     {
-      "id": "demo-001",
-      "title": "Bienvenido al Museo",
-      "type": "image",
-      "file": "images/welcome.jpg",
-      "thumbnail": "thumbnails/welcome.jpg",
-      "description": "Imagen de bienvenida del museo"
-    },
-    {
-      "id": "exhibit-a6076351",
+      "id": "exhibit-8d53917a",
       "title": "a",
       "type": "video",
-      "file": "videos/prueba.mp4",
-      "thumbnail": "thumbnails/prueba.jpg",
-      "description": "a"
+      "file": "videos/Grabacion_de_pantalla_2026-02-05_132258.mp4",
+      "thumbnail": "thumbnails/Grabacion_de_pantalla_2026-02-05_132258.jpg",
+      "description": "a",
+      "category": "General",
+      "sort_order": 1,
+      "enabled": false
+    },
+    {
+      "id": "exhibit-eac7bf15",
+      "title": "AA",
+      "type": "video",
+      "file": "videos/videoplayback.mp4",
+      "thumbnail": "thumbnails/videoplayback.jpg",
+      "description": "AA",
+      "category": "General",
+      "sort_order": 2,
+      "enabled": false
+    },
+    {
+      "id": "exhibit-2de266ef",
+      "title": "CC",
+      "type": "pdf",
+      "file": "pdfs/agua-que-viene-agua-que-va.pdf",
+      "thumbnail": "thumbnails/agua-que-viene-agua-que-va.jpg",
+      "description": "CC",
+      "category": "General",
+      "sort_order": 3,
+      "enabled": false
     }
-  ]
+  ],
+  "settings": {
+    "screensaver": "",
+    "experience_mode": "perpetual"
+  }
 }

@@ -241,8 +241,9 @@ class ContentViewer:
         elif self._type == "image":
             self._draw_image(target_surface, sw, sh)
 
-        self._draw_title_bar(target_surface, sw, sh)
-        self._draw_hints(target_surface, sw, sh)
+        if not self.is_perpetual:
+            self._draw_title_bar(target_surface, sw, sh)
+            self._draw_hints(target_surface, sw, sh)
 
     # ─── Video ────────────────────────────────────────────────────────
 
